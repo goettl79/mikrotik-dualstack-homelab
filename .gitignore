@@ -1,0 +1,27 @@
+# Environment & sensitive files
+.env
+*.env
+*.key
+*.pem
+id_rsa*
+id_ed25519*
+
+# Backups & Temp files
+*.backup
+*.rsc.bak
+*.tmp
+*~
+
+# OS & Editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local drafts & personal notes
+LINKEDIN_POST.md
+*linkedin*
+*LINKEDIN*
+k3d*.yaml
+k3d*.yml
+*k3d*
