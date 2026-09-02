@@ -146,33 +146,23 @@ flowchart TD
     end
 
     %% 3. ENDGERÄTE & ZONEN
-    subgraph ZONES [" "]
-        direction LR
-        
-        subgraph SERVER_ZONE ["3. SERVER-ZONE (192.168.20.0/24)"]
-            direction TB
-            K3D["<b>QNAP Port 2: k3d Cluster (DMZ)</b><br/>• Traefik Ingress (80/443)<br/>• Luanti-Gameserver<br/>• Pod-Netz (10.42.0.0/16)"]
-        end
+    subgraph SERVER_ZONE ["3. SERVER-ZONE (192.168.20.0/24)"]
+        direction TB
+        K3D["<b>QNAP Port 2: k3d Cluster (DMZ)</b><br/>• Traefik Ingress (80/443)<br/>• Luanti-Gameserver<br/>• Pod-Netz (10.42.0.0/16)"]
+    end
 
-        subgraph HEIMNETZ_ZONE ["4. HEIMNETZ (192.168.10.0/24)"]
-            direction TB
-            NAS1["<b>QNAP Port 1: Private Dienste</b><br/>• SMB Speicher & QTS Verwaltung<br/>• Lokale Backups (115–120 MB/s)"]
-            SWITCH["<b>Kabel-Hauptnetz (Cat6a)</b><br/>• Zentraler Gigabit-Switch<br/>• Raumdosen im ganzen Haus"]
-            
-            subgraph AP_ZONE ["TP-Link Archer AXE75<br/>(Wi-Fi 6E AP-Modus)"]
-                direction TB
-                SSID_FAM["<b>SSID: Family (2.4/5/6 GHz)</b><br/>• Eltern, Laptops & PCs<br/>• Kinder-Handys, Sonos"]
-                SSID_KIDS["<b>SSID: Kids (2.4/5 GHz)</b><br/>• Schul- & Kinder-Laptops<br/>• Tablets & Konsolen"]
-                SSID_IOT["<b>SSID: IoT_Home (2.4 GHz)</b><br/>• Smarthome, Saugroboter<br/>• <i>AP-Isolation: Isoliert</i>"]
-            end
-        end
+    subgraph HEIMNETZ_ZONE ["4. HEIMNETZ (192.168.10.0/24)"]
+        direction TB
+        NAS1["<b>QNAP Port 1: Private Dienste</b><br/>• SMB Speicher & QTS Verwaltung<br/>• Lokale Backups (115–120 MB/s)"]
+        SWITCH["<b>Kabel-Hauptnetz (Cat6a)</b><br/>• Zentraler Gigabit-Switch<br/>• Raumdosen im ganzen Haus"]
+        AP["<b>TP-Link Archer AXE75 (Wi-Fi 6E AP)</b><br/>• <b>SSID Family:</b> Eltern, Laptops, Sonos, Handys<br/>• <b>SSID Kids:</b> Schul-Laptops & Tablets<br/>• <b>SSID IoT_Home:</b> Smart Home (AP-Isolation)"]
     end
 
     %% Physische Verbindungen
     ONT ===>|"FTTH Dual-Stack"| E1
     E2 ===>|"Dedizierter Uplink"| K3D
     E3 ===>|"1 GBit/s Line-Rate"| NAS1
-    E4 ===>|"Gigabit Uplink"| AP_ZONE
+    E4 ===>|"Gigabit Uplink"| AP
     E5 ===>|"Gigabit Trunk"| SWITCH
 
     %% Firewall Flow
@@ -186,8 +176,7 @@ flowchart TD
     style BRIDGE fill:#eef7ee,stroke:#2e7d32,stroke-width:1.5px
     style SERVER_ZONE fill:#fff8f0,stroke:#d84315,stroke-width:1.5px
     style HEIMNETZ_ZONE fill:#f3fbf4,stroke:#2e7d32,stroke-width:1.5px
-    style AP_ZONE fill:#faf5fc,stroke:#6a1b9a,stroke-width:1.2px
-    style ZONES fill:transparent,stroke:transparent
+    style AP fill:#faf5fc,stroke:#6a1b9a,stroke-width:1.5px
 ```
 
 </div>
