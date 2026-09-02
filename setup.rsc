@@ -121,6 +121,11 @@
     /ip address add address=192.168.10.1/24 interface=bridge-heimnetz network=192.168.10.0 comment="Gateway IP Heimnetz"
 }
 
+# Statische DHCP-Reservierungen (Infrastruktur-Geräte außerhalb des dynamischen Pools .100-.200)
+:do { /ip dhcp-server lease remove [ find mac-address="50:91:E3:F4:0B:40" ] } on-error={}
+:do { /ip dhcp-server lease remove [ find mac-address="50:91:E3:F4:0B:41" ] } on-error={}
+/ip dhcp-server lease add address=192.168.10.2 mac-address=50:91:E3:F4:0B:40 server=dhcp-heimnetz comment="TP-Link Archer AXE75 (Wi-Fi 6E AP)"
+
 # --- 2. SERVER-ZONE (192.168.20.0/24 - k3d Cluster) ---
 /ip pool add name=pool-server-zone ranges=192.168.20.100-192.168.20.200 comment="DHCP Pool für Server-Zone (k3d)"
 :if ([:len [/ip address find address="192.168.20.1/24" and interface=ether2]] = 0) do={

@@ -264,7 +264,7 @@ flowchart TD
 
 ### Port-Belegung im `HEIMNETZ` (ether3, ether4, ether5)
 * **`ether3`:** QNAP NAS Port 1 $\rightarrow$ Interne Netzlaufwerke (SMB), automatische Foto-Backups, Cloud-Synchronisation und QTS Web-Administration.
-* **`ether4`:** TP-Link Archer AXE75 (AP-Modus) $\rightarrow$ Verteilt die WLAN-Netzwerke (`Family`, `Kids`, `IoT_Home`).
+* **`ether4`:** TP-Link Archer AXE75 (AP-Modus, feste IP: `192.168.10.2`) $\rightarrow$ Verteilt die WLAN-Netzwerke (`Family`, `Kids`, `IoT_Home`).
 * **`ether5`:** Kabel-Hauptnetz $\rightarrow$ Zentraler Switch mit Cat6a Raumverkabelung in alle Zimmer.
 
 <div class="page-break"></div>
@@ -372,6 +372,7 @@ flowchart TD
 ### Phase 3: Konfiguration der Endgeräte
 
 #### A. TP-Link Archer AXE75 (WLAN Access Point)
+- [ ] **Admin-Zugriff:** Erreichbar unter **http://192.168.10.2** (feste DHCP-Reservierung im MikroTik via MAC `50:91:E3:F4:0B:40`).
 - [ ] **Betriebsmodus:** In der TP-Link Web-GUI auf **Access Point (AP-Modus)** umstellen.
 - [ ] **SSID `Family` einrichten:** 2.4 / 5 / 6 GHz (Smart Connect), WPA2/WPA3 (Eltern, Laptops, Sonos, Kinder-Handys).
 - [ ] **SSID `Kids` einrichten:** 2.4 / 5 GHz (Separates Passwort für Schul- & Kinder-Laptops, Tablets).
