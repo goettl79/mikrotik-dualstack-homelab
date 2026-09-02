@@ -7,10 +7,13 @@ set -euo pipefail
 TARGET_IP="${1:-192.168.88.1}"
 ROUTER_USER="${2:-admin}"
 SSH_PORT="${3:-22}"
+ROUTER_PASS="${4:-${ROUTER_PASSWORD:-}}"
 SCRIPT_FILE="setup.rsc"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_PATH="${SCRIPT_DIR}/${SCRIPT_FILE}"
+
+SSH_OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR)
 
 echo "============================================================"
 echo " MikroTik hEX Provisioning Deployment"
@@ -41,18 +44,34 @@ else
     exit 1
 fi
 
+# Determine prefix command (sshpass if password provided)
+SCP_CMD=(scp "${SSH_OPTS[@]}" -P "${SSH_PORT}")
+SSH_CMD=(ssh "${SSH_OPTS[@]}" -p "${SSH_PORT}")
+
+if [[ -n "${ROUTER_PASS}" ]]; then
+    if command -v sshpass >/dev/null 2>&1; then
+        SCP_CMD=(sshpass -p "${ROUTER_PASS}" "${SCP_CMD[@]}")
+        SSH_CMD=(sshpass -p "${ROUTER_PASS}" "${SSH_CMD[@]}")
+    else
+        echo "[!] Info: sshpass not installed locally, will prompt for password if needed."
+    fi
+fi
+
 # 3. Upload setup.rsc via SCP
 echo "[*] Step 3: Uploading ${SCRIPT_FILE} to MikroTik router..."
-scp -P "${SSH_PORT}" "${CONFIG_PATH}" "${ROUTER_USER}@${TARGET_IP}:${SCRIPT_FILE}"
+"${SCP_CMD[@]}" "${CONFIG_PATH}" "${ROUTER_USER}@${TARGET_IP}:${SCRIPT_FILE}"
 echo "[+] Upload completed successfully."
 
 # 4. Execute configuration import via SSH
 echo "[*] Step 4: Importing ${SCRIPT_FILE} on RouterOS..."
-ssh -p "${SSH_PORT}" "${ROUTER_USER}@${TARGET_IP}" "/import verbose=yes file-name=${SCRIPT_FILE}"
+"${SSH_CMD[@]}" "${ROUTER_USER}@${TARGET_IP}" "/import verbose=yes file-name=${SCRIPT_FILE}" || true
 
 echo "============================================================"
-echo "[+] Deployment completed successfully!"
+echo "[+] Deployment script finished!"
 echo "    1. INTERNET:    vlan31-internet (A1/Telematica ONT auf ether1)"
 echo "    2. HEIMNETZ:    192.168.10.1 / IPv6 SLAAC (bridge-heimnetz, ether3-5)"
 echo "    3. SERVER-ZONE: 192.168.20.1 / IPv6 SLAAC (ether2, k3d Cluster)"
+echo ""
+echo "    Hinweis: Dein PC erhaelt nach DHCP-Erneuerung eine IP aus 192.168.10.0/24."
+echo "    Der Router ist nun unter 192.168.10.1 erreichbar."
 echo "============================================================"

@@ -14,7 +14,7 @@
 /system identity set name="MikroTik-hEX"
 
 # Disable all LEDs permanently
-/system leds settings set all-leds-off=always
+:do { /system leds disable [ find ] } on-error={}
 
 # --- Disable Unneeded & Insecure Management Services ---
 /ip service set [ find name=telnet ] disabled=yes
@@ -22,10 +22,8 @@
 /ip service set [ find name=www ] disabled=yes
 /ip service set [ find name=api ] disabled=yes
 /ip service set [ find name=api-ssl ] disabled=yes
-
-# Restrict active services to Heimnetz subnet
-/ip service set [ find name=winbox ] address=192.168.10.0/24 disabled=no
-/ip service set [ find name=ssh ] address=192.168.10.0/24 disabled=no
+/ip service set [ find name=winbox ] disabled=no
+/ip service set [ find name=ssh ] disabled=no
 
 # Enforce strong cryptographic algorithms for SSH
 /ip ssh set strong-crypto=yes
@@ -50,24 +48,45 @@
 /interface set [ find default-name=ether4 ] name=ether4 comment="Heimnetz: TP-Link Archer AXE75 WLAN Access Point"
 /interface set [ find default-name=ether5 ] name=ether5 comment="Heimnetz: Kabel-Hauptnetz (Switch -> Cat6a Raumdosen)"
 
-# Create Bridge for Heimnetz (ether3, ether4, ether5)
-/interface bridge add name=bridge-heimnetz comment="Bridge für privates Heimnetz (ether3-ether5)"
+# Seamless Bridge Setup (kein Verbindungsabbruch):
+:do { /interface bridge set [ find name=bridge ] name=bridge-heimnetz comment="Bridge für privates Heimnetz (ether3-ether5)" } on-error={}
+:if ([:len [/interface bridge find name=bridge-heimnetz]] = 0) do={
+    /interface bridge add name=bridge-heimnetz comment="Bridge für privates Heimnetz (ether3-ether5)"
+}
 
-# Attach Heimnetz ports to Bridge with Hardware Offloading (L2 Wire-Speed Switching)
-/interface bridge port add bridge=bridge-heimnetz interface=ether3 hw=yes comment="QNAP Port 1 (SMB/QTS - HW-Switching 1 Gbps)"
-/interface bridge port add bridge=bridge-heimnetz interface=ether4 hw=yes comment="TP-Link AXE75 AP (HW-Switching 1 Gbps)"
-/interface bridge port add bridge=bridge-heimnetz interface=ether5 hw=yes comment="Kabel-Hauptnetz (HW-Switching 1 Gbps)"
+# ether1 (WAN) und ether2 (Server-Zone) aus der Bridge entfernen
+:do { /interface bridge port remove [ find interface=ether1 ] } on-error={}
+:do { /interface bridge port remove [ find interface=ether2 ] } on-error={}
+
+# ether3, ether4, ether5 in bridge-heimnetz sicherstellen (Hardware Offloading)
+:if ([:len [/interface bridge port find interface=ether3 and bridge=bridge-heimnetz]] = 0) do={
+    /interface bridge port add bridge=bridge-heimnetz interface=ether3 hw=yes comment="QNAP Port 1 (SMB/QTS - HW-Switching 1 Gbps)"
+}
+:if ([:len [/interface bridge port find interface=ether4 and bridge=bridge-heimnetz]] = 0) do={
+    /interface bridge port add bridge=bridge-heimnetz interface=ether4 hw=yes comment="TP-Link AXE75 AP (HW-Switching 1 Gbps)"
+}
+:if ([:len [/interface bridge port find interface=ether5 and bridge=bridge-heimnetz]] = 0) do={
+    /interface bridge port add bridge=bridge-heimnetz interface=ether5 hw=yes comment="Kabel-Hauptnetz (HW-Switching 1 Gbps)"
+}
 
 # Create WAN VLAN 31 on ether1
-/interface vlan add name=vlan31-internet vlan-id=31 interface=ether1 comment="Internet Uplink VLAN 31 (A1/Telematica)"
+:if ([:len [/interface vlan find name=vlan31-internet]] = 0) do={
+    /interface vlan add name=vlan31-internet vlan-id=31 interface=ether1 comment="Internet Uplink VLAN 31 (A1/Telematica)"
+}
 
 # ------------------------------------------------------------------------------
 # 3. Interface Lists (Strukturierte Sicherheitszonen)
 # ------------------------------------------------------------------------------
-/interface list add name=INTERNET comment="Zulauf / WAN aus Internet"
-/interface list add name=HEIMNETZ comment="Privates Heimnetzwerk (Vertrauenswürdig)"
-/interface list add name=SERVER-ZONE comment="Isolierte Server-Zone / k3d Cluster (DMZ)"
+:if ([:len [/interface list find name=INTERNET]] = 0) do={ /interface list add name=INTERNET }
+:if ([:len [/interface list find name=HEIMNETZ]] = 0) do={ /interface list add name=HEIMNETZ }
+:if ([:len [/interface list find name=SERVER-ZONE]] = 0) do={ /interface list add name=SERVER-ZONE }
 
+# Alte Firewall-Regeln VOR Abänderung der Interface-Listen leeren, damit alte Drop-Regeln (!LAN) die Session nicht trennen
+:do { /ip firewall filter remove [ find dynamic=no ] } on-error={}
+:do { /ip firewall nat remove [ find dynamic=no ] } on-error={}
+:do { /ipv6 firewall filter remove [ find dynamic=no ] } on-error={}
+
+/interface list member remove [ find ]
 /interface list member add interface=vlan31-internet list=INTERNET
 /interface list member add interface=bridge-heimnetz list=HEIMNETZ
 /interface list member add interface=ether2 list=SERVER-ZONE
@@ -75,26 +94,38 @@
 # ------------------------------------------------------------------------------
 # 4. Management Plane & Discovery Hardening (L2 / Neighbors)
 # ------------------------------------------------------------------------------
-# Restrict MAC-Winbox and MAC-Server strictly to Heimnetz (no L2 access from Server-Zone/Internet)
+# Restrict MAC-Winbox and MAC-Server strictly to Heimnetz
 /tool mac-server set allowed-interface-list=HEIMNETZ
 /tool mac-server mac-winbox set allowed-interface-list=HEIMNETZ
 /tool mac-server ping set enabled=no
 
-# Restrict Neighbor Discovery (MNDP/CDP/LLDP) strictly to Heimnetz (no topology leaks to Server-Zone/Internet)
+# Restrict Neighbor Discovery strictly to Heimnetz
 /ip neighbor discovery-settings set discover-interface-list=HEIMNETZ
 
 # ------------------------------------------------------------------------------
 # 5. IPv4 Addressing & DHCP Servers
 # ------------------------------------------------------------------------------
+# Alte DHCP-Konfigurationen aufräumen
+/ip dhcp-client remove [ find ]
+/ip dhcp-server remove [ find ]
+/ip dhcp-server network remove [ find ]
+/ip pool remove [ find ]
+
 # --- 1. HEIMNETZ (192.168.10.0/24) ---
 /ip pool add name=pool-heimnetz ranges=192.168.10.100-192.168.10.200 comment="DHCP Pool für Heimnetz"
-/ip address add address=192.168.10.1/24 interface=bridge-heimnetz network=192.168.10.0 comment="Gateway IP Heimnetz"
 /ip dhcp-server add name=dhcp-heimnetz interface=bridge-heimnetz address-pool=pool-heimnetz disabled=no lease-time=12h
 /ip dhcp-server network add address=192.168.10.0/24 gateway=192.168.10.1 dns-server=192.168.10.1 comment="Heimnetz DHCP Konfiguration"
 
+# Neue IP auf bridge-heimnetz hinzufügen (192.168.88.1 bleibt temporär für die laufende SSH-Session bestehen)
+:if ([:len [/ip address find address="192.168.10.1/24" and interface=bridge-heimnetz]] = 0) do={
+    /ip address add address=192.168.10.1/24 interface=bridge-heimnetz network=192.168.10.0 comment="Gateway IP Heimnetz"
+}
+
 # --- 2. SERVER-ZONE (192.168.20.0/24 - k3d Cluster) ---
 /ip pool add name=pool-server-zone ranges=192.168.20.100-192.168.20.200 comment="DHCP Pool für Server-Zone (k3d)"
-/ip address add address=192.168.20.1/24 interface=ether2 network=192.168.20.0 comment="Gateway IP Server-Zone"
+:if ([:len [/ip address find address="192.168.20.1/24" and interface=ether2]] = 0) do={
+    /ip address add address=192.168.20.1/24 interface=ether2 network=192.168.20.0 comment="Gateway IP Server-Zone"
+}
 /ip dhcp-server add name=dhcp-server-zone interface=ether2 address-pool=pool-server-zone disabled=no lease-time=12h
 /ip dhcp-server network add address=192.168.20.0/24 gateway=192.168.20.1 dns-server=1.1.1.1,8.8.8.8 comment="Server-Zone DHCP Konfiguration (Externe DNS für Container)"
 
@@ -107,16 +138,27 @@
 /ipv6 settings set forward=yes accept-router-advertisements=yes
 
 # Request /64 Prefix Delegation from ISP
+:do { /ipv6 dhcp-client remove [ find ] } on-error={}
 /ipv6 dhcp-client add interface=vlan31-internet request=prefix pool-name=ipv6-pd pool-prefix-length=64 add-default-route=yes comment="Internet IPv6 DHCP-PD"
 
 # Assign IPv6 to Heimnetz & Server-Zone from ISP delegated pool (SLAAC / advertise=yes)
-/ipv6 address add from-pool=ipv6-pd interface=bridge-heimnetz advertise=yes comment="Heimnetz IPv6 Subnetz (SLAAC)"
-/ipv6 address add from-pool=ipv6-pd interface=ether2 advertise=yes comment="Server-Zone IPv6 Subnetz (SLAAC - k3d)"
+:do { /ipv6 address remove [ find dynamic=no ] } on-error={}
+:if ([:len [/ipv6 address find interface=bridge-heimnetz and from-pool=ipv6-pd]] = 0) do={
+    /ipv6 address add from-pool=ipv6-pd interface=bridge-heimnetz advertise=yes comment="Heimnetz IPv6 Subnetz (SLAAC)"
+}
+:if ([:len [/ipv6 address find interface=ether2 and from-pool=ipv6-pd]] = 0) do={
+    /ipv6 address add from-pool=ipv6-pd interface=ether2 advertise=yes comment="Server-Zone IPv6 Subnetz (SLAAC - k3d)"
+}
 
 # Neighbor Discovery Settings
 /ipv6 nd set [ find default=yes ] disabled=yes
-/ipv6 nd add interface=bridge-heimnetz advertise-dns=yes managed-address-configuration=no other-configuration=no comment="ND für Heimnetz"
-/ipv6 nd add interface=ether2 advertise-dns=yes managed-address-configuration=no other-configuration=no comment="ND für Server-Zone"
+:do { /ipv6 nd remove [ find default=no ] } on-error={}
+:if ([:len [/ipv6 nd find interface=bridge-heimnetz]] = 0) do={
+    /ipv6 nd add interface=bridge-heimnetz advertise-dns=yes managed-address-configuration=no other-configuration=no comment="ND für Heimnetz"
+}
+:if ([:len [/ipv6 nd find interface=ether2]] = 0) do={
+    /ipv6 nd add interface=ether2 advertise-dns=yes managed-address-configuration=no other-configuration=no comment="ND für Server-Zone"
+}
 
 # ------------------------------------------------------------------------------
 # 7. DNS Configuration
@@ -126,12 +168,12 @@
 # ------------------------------------------------------------------------------
 # 8. IPv4 Firewall & NAT
 # ------------------------------------------------------------------------------
+# Bestehende Firewall-Regeln aufräumen
+:do { /ip firewall nat remove [ find dynamic=no ] } on-error={}
+:do { /ip firewall filter remove [ find dynamic=no ] } on-error={}
+
 # --- NAT ---
 /ip firewall nat add chain=srcnat out-interface-list=INTERNET action=masquerade comment="NAT: Masquerade für ausgehenden Internet-Verkehr"
-
-# Beispiel Ingress Port-Forwarding für k3d Traefik (optional aktivieren, sobald Ingress-IP feststeht):
-# /ip firewall nat add chain=dstnat in-interface-list=INTERNET protocol=tcp dst-port=80 action=dst-nat to-addresses=192.168.20.10 to-ports=80 comment="HTTP zu k3d Traefik Ingress"
-# /ip firewall nat add chain=dstnat in-interface-list=INTERNET protocol=tcp dst-port=443 action=dst-nat to-addresses=192.168.20.10 to-ports=443 comment="HTTPS zu k3d Traefik Ingress"
 
 # --- Input Chain ---
 /ip firewall filter add chain=input connection-state=established,related action=accept comment="Input: Etablierte Verbindungen erlauben"
@@ -143,29 +185,30 @@
 /ip firewall filter add chain=input action=drop comment="Input: Alles andere verwerfen (Default Drop)"
 
 # --- Forward Chain ---
-# 1 & 2. State tracking
 /ip firewall filter add chain=forward connection-state=established,related action=accept comment="Forward: Etablierte Verbindungen erlauben"
 /ip firewall filter add chain=forward connection-state=invalid action=drop comment="Forward: Invalide Pakete verwerfen"
 
-# 3. Ausgehender Internetzugriff
+# Ausgehender Internetzugriff
 /ip firewall filter add chain=forward in-interface-list=HEIMNETZ out-interface-list=INTERNET action=accept comment="Forward: Heimnetz -> Internet erlauben"
 /ip firewall filter add chain=forward in-interface-list=SERVER-ZONE out-interface-list=INTERNET action=accept comment="Forward: Server-Zone -> Internet erlauben (Image Pulls/APIs)"
 
-# 4. Management & Zugriff aus dem Heimnetz in die Server-Zone (kubectl, Lens, Dev Web)
+# Management & Zugriff aus dem Heimnetz in die Server-Zone (kubectl, Lens, Dev Web)
 /ip firewall filter add chain=forward in-interface-list=HEIMNETZ out-interface-list=SERVER-ZONE action=accept comment="Forward: Heimnetz -> Server-Zone erlauben (kubectl/Dev)"
 
-# 5. Isolation: Server-Zone -> Heimnetz DROP (KRITISCHER SCHUTZ für QNAP Port 1 & Familien-PCs)
+# Isolation: Server-Zone -> Heimnetz DROP (KRITISCHER SCHUTZ für QNAP Port 1 & Familien-PCs)
 /ip firewall filter add chain=forward in-interface-list=SERVER-ZONE out-interface-list=HEIMNETZ action=drop comment="Forward: Server-Zone -> Heimnetz SPERREN (CRITICAL)"
 
-# 6. Eingehender Web-Verkehr aus dem Internet (dstnat auf Traefik Ingress)
+# Eingehender Web-Verkehr aus dem Internet (dstnat auf Traefik Ingress)
 /ip firewall filter add chain=forward in-interface-list=INTERNET out-interface-list=SERVER-ZONE connection-nat-state=dstnat action=accept comment="Forward: Internet -> Server-Zone (nur freigegebener Ingress)"
 
-# 7. Standard Fallback
+# Standard Fallback
 /ip firewall filter add chain=forward action=drop comment="Forward: Alles andere verwerfen (Default Drop)"
 
 # ------------------------------------------------------------------------------
 # 9. IPv6 Firewall
 # ------------------------------------------------------------------------------
+:do { /ipv6 firewall filter remove [ find dynamic=no ] } on-error={}
+
 # --- Input Chain ---
 /ipv6 firewall filter add chain=input connection-state=established,related action=accept comment="IPv6 Input: Etablierte Verbindungen erlauben"
 /ipv6 firewall filter add chain=input connection-state=invalid action=drop comment="IPv6 Input: Invalide Pakete verwerfen"
@@ -179,7 +222,6 @@
 /ipv6 firewall filter add chain=forward connection-state=invalid action=drop comment="IPv6 Forward: Invalide Pakete verwerfen"
 /ipv6 firewall filter add chain=forward protocol=icmpv6 action=accept comment="IPv6 Forward: ICMPv6 erlauben"
 
-# Forwarding Rules
 /ipv6 firewall filter add chain=forward in-interface-list=HEIMNETZ out-interface-list=INTERNET action=accept comment="IPv6 Forward: Heimnetz -> Internet erlauben"
 /ipv6 firewall filter add chain=forward in-interface-list=SERVER-ZONE out-interface-list=INTERNET action=accept comment="IPv6 Forward: Server-Zone -> Internet erlauben"
 /ipv6 firewall filter add chain=forward in-interface-list=HEIMNETZ out-interface-list=SERVER-ZONE action=accept comment="IPv6 Forward: Heimnetz -> Server-Zone erlauben (kubectl)"
@@ -191,5 +233,11 @@
 /ipv6 firewall filter add chain=forward action=drop comment="IPv6 Forward: Alles andere verwerfen (Default Drop)"
 
 # ------------------------------------------------------------------------------
-# End of setup.rsc
+# 10. Final Cleanup: Alte 192.168.88.1 IP entfernen
 # ------------------------------------------------------------------------------
+:delay 2s
+/ip address remove [ find address="192.168.88.1/24" ]
+
+# ==============================================================================
+# End of setup.rsc
+# ==============================================================================

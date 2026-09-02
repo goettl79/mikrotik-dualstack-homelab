@@ -25,3 +25,7 @@ LINKEDIN_POST.md
 k3d*.yaml
 k3d*.yml
 *k3d*
+
+# Local binaries
+bin/
+
