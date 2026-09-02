@@ -281,6 +281,20 @@ flowchart TD
 
 </div>
 
+### DNS-Architektur & Namensauflösung
+
+<div class="no-break">
+
+| Hierarchie-Ebene | Resolver / Komponente | IP-Adresse(n) | Latenz | Funktion & Ausfallsicherung |
+|:---|:---|:---|:---:|:---|
+| **1. Stufe (Lokal)** | **MikroTik RAM-Cache** | `192.168.10.1` / IPv6 SLAAC | **~1–3 ms** | Blitzschnelle lokale Auflösung für alle Heimnetz- & WLAN-Clients |
+| **2. Stufe (Primär)** | **Telematica DNS (Peer)** | `94.16.16.94`, `94.16.16.16` | **~5–8 ms** | Provider-eigene Resolver im Telematica/A1-Backbone (via DHCP) |
+| **3. Stufe (Fallback)** | **Cloudflare DNS** | `1.1.1.1`, `2606:4700:4700::1111` | **~18 ms** | Redundanter Fallback bei Provider-Wartungsarbeiten oder Störungen |
+
+* **Server-Zone Entkopplung:** Pods & Container in der `SERVER-ZONE` (`192.168.20.0/24`) erhalten per DHCP direkt externe DNS-Server (`1.1.1.1`, `8.8.8.8`), um den Router-Cache vor Lastspitzen durch Container-Image-Pulls zu schützen.
+
+</div>
+
 ---
 
 ## 3. Zugriffs- & Sicherheits-Matrix
@@ -424,6 +438,7 @@ Falls der Router nicht mehr erreichbar ist oder die Konfiguration zurückgesetzt
 | **IPv6 Dual-Stack**| IPv6 Adress-Pools (SLAAC) | `/ipv6 address print` | Globale IPv6 auf `bridge-heimnetz` und `ether2` |
 | **Firewall** | Filter-Regeln & Drop-Counter | `/ip firewall filter print stats` | Prüfen der Paketzähler für DROP-Regeln |
 | **Firewall** | Aktive Verbindungen (Conntrack) | `/ip firewall connection print` | Aktuelle TCP/UDP Session-Tabelle |
+| **DNS & Cache** | Upstream-Server & Cache-RAM | `/ip dns print` | Telematica `dynamic-servers` & Cache-Größe |
 | **System** | CPU-Last & Systemressourcen | `/system resource print` | CPU-Auslastung (<5% bei L2 Line-Rate) |
 | **System** | Live-Systemprotokoll | `/log print follow-only` | Echtzeit-Logs für DHCP, Login & Security-Events |
 
