@@ -23,7 +23,7 @@ Du bist ein Senior Network & Security Engineer. Deine Aufgabe ist es, ein vollst
 ### 1. `INTERNET` (WAN Uplink auf ether1):
 - Uplink zu A1/Telematica ONT
 - VLAN 31 Interface: `vlan31-internet`
-- IPv4 DHCP-Client auf VLAN 31 (Default Route: ja, Peer-DNS: nein)
+- IPv4 DHCP-Client auf VLAN 31 (Default Route: ja, Peer-DNS: ja)
 - IPv6 DHCP-Client (Prefix Delegation) auf VLAN 31 (`ipv6-pd`, `/64`, Default Route: via BNG Neighbor / Link-Local Gateway)
 
 ### 2. `SERVER-ZONE` (Isolierte k3d Kubernetes DMZ & Luanti-Server auf ether2):

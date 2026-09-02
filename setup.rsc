@@ -130,7 +130,7 @@
 /ip dhcp-server network add address=192.168.20.0/24 gateway=192.168.20.1 dns-server=1.1.1.1,8.8.8.8 comment="Server-Zone DHCP Konfiguration (Externe DNS für Container)"
 
 # --- 3. INTERNET (WAN IPv4 DHCP Client) ---
-/ip dhcp-client add interface=vlan31-internet add-default-route=yes use-peer-dns=no comment="Internet IPv4 DHCP Client"
+/ip dhcp-client add interface=vlan31-internet add-default-route=yes use-peer-dns=yes comment="Internet IPv4 DHCP Client"
 
 # ------------------------------------------------------------------------------
 # 6. IPv6 Addressing & DHCPv6-PD
@@ -176,7 +176,8 @@
 # ------------------------------------------------------------------------------
 # 7. DNS Configuration
 # ------------------------------------------------------------------------------
-/ip dns set allow-remote-requests=yes servers=1.1.1.1,8.8.8.8,2606:4700:4700::1111,2001:4860:4860::8888
+# Primary: Telematica DNS (94.16.16.94, 94.16.16.16), Fallback: Cloudflare
+/ip dns set allow-remote-requests=yes servers=94.16.16.94,94.16.16.16,1.1.1.1,2606:4700:4700::1111
 
 # ------------------------------------------------------------------------------
 # 8. IPv4 Firewall & NAT
