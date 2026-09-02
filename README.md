@@ -1,4 +1,41 @@
 <style>
+  /* Screen & Base Table Styling */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.6em 0 1em 0;
+    font-size: 8.5pt;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 5px 8px;
+    text-align: left;
+    vertical-align: middle;
+  }
+  th {
+    background-color: #f1f5f9;
+    font-weight: 600;
+    color: #0b2545;
+  }
+  tr:nth-child(even) td {
+    background-color: #f8fafc;
+  }
+  .badge-allow {
+    color: #1b5e20;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .badge-drop {
+    color: #b71c1c;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .badge-warn {
+    color: #b26a00;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
   @media print {
     @page {
       size: A4 portrait;
@@ -40,23 +77,51 @@
     table {
       width: 100% !important;
       border-collapse: collapse !important;
-      margin: 0.4em 0 0.8em 0 !important;
-      font-size: 8pt !important;
+      margin: 0.3em 0 0.6em 0 !important;
+      font-size: 7.5pt !important;
       page-break-inside: avoid;
       break-inside: avoid;
     }
     th, td {
-      border: 1px solid #bbb !important;
-      padding: 3.5px 6px !important;
+      border: 1px solid #cbd5e1 !important;
+      padding: 3px 6px !important;
       text-align: left;
-      vertical-align: top;
+      vertical-align: middle;
     }
     th {
-      background-color: #eef4f8 !important;
+      background-color: #e2e8f0 !important;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
       font-weight: 600;
       color: #0b2545;
+    }
+    tr:nth-child(even) td {
+      background-color: #f8fafc !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    td code, th code {
+      font-size: 7.2pt !important;
+      padding: 1px 3px !important;
+      background: #f1f5f9 !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 2px !important;
+      white-space: nowrap !important;
+    }
+    .badge-allow {
+      color: #1b5e20 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .badge-drop {
+      color: #b71c1c !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .badge-warn {
+      color: #b26a00 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
     pre, code {
       font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -90,6 +155,16 @@
       page-break-inside: avoid;
       break-inside: avoid;
     }
+    .mermaid, svg {
+      max-width: 100% !important;
+      height: auto !important;
+      display: block;
+      margin: 0.4em auto 0.6em auto !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
     hr {
       border: 0;
       border-top: 1px solid #ddd;
@@ -109,55 +184,66 @@ Automatisierte Bereitstellung und gehärtete Konfiguration für MikroTik hEX Rou
 <div class="no-break">
 
 ```mermaid
-flowchart LR
+flowchart TD
     %% 1. INTERNET
-    subgraph INTERNET_ZONE ["1. Internet Uplink"]
-        ONT["A1 / Telematica ONT<br/>(VLAN 31 Tagged)"]
+    subgraph WAN ["1. Internet Uplink (WAN)"]
+        ONT["<b>A1 / Telematica ONT</b><br/>FTTH Uplink (VLAN 31 Tagged)"]
     end
 
     %% 2. ROUTER
-    subgraph ROUTER ["2. MikroTik hEX (RouterOS v7)"]
+    subgraph ROUTER ["2. MikroTik hEX RB750Gr3 (RouterOS v7)"]
         direction TB
-        E1["ether1: vlan31-internet (DHCPv4 / IPv6-PD)"]
-        E2["ether2: Server-Zone (192.168.20.1/24 + IPv6)"]
-        E3["ether3: Heimnetz (QNAP Port 1 SMB)"]
-        E4["ether4: Heimnetz (Archer AXE75 AP)"]
-        E5["ether5: Kabel-Hauptnetz (Cat6a Switch)"]
-    end
-
-    %% 3. SERVER-ZONE
-    subgraph SERVER_ZONE ["3. Server-Zone (192.168.20.0/24 + IPv6)"]
-        direction TB
-        K3D["QNAP Port 2: Server-Zone<br/>• k3d Kubernetes & Pods (10.42.0.0/16)<br/>• Luanti-Gameserver & Traefik (80/443)"]
-    end
-
-    %% 4. HEIMNETZ
-    subgraph HEIMNETZ_ZONE ["4. Heimnetz (bridge-heimnetz: 192.168.10.0/24 + IPv6)"]
-        direction TB
-        NAS1["QNAP Port 1: Private Dienste<br/>• SMB, Foto-Backups, Cloud-Sync<br/>• 1 GBit/s Line-Rate (0% CPU)"]
-        SWITCH["Kabel-Hauptnetz (Cat6a)<br/>• Raumdosen in allen Zimmern"]
+        E1["<b>ether1 (WAN):</b> vlan31-internet<br/>DHCPv4-Client & IPv6-PD (/64 Pool)"]
         
-        subgraph AP_ZONE ["TP-Link Archer AXE75 (Wi-Fi 6E AP)"]
-            direction TB
-            SSID_FAM["SSID: Family (2.4/5/6 GHz)<br/>• Eltern, Kinder-Handys, Sonos"]
-            SSID_KIDS["SSID: Kids (2.4/5 GHz)<br/>• Schul- & eigene Laptops"]
-            SSID_IOT["SSID: IoT_Home (2.4 GHz)<br/>• Smart Home (AP-Isoliert)"]
+        subgraph ROUTING ["Sicherheitszonen & Interfaces"]
+            direction LR
+            BR["<b>bridge-heimnetz (ether3 - ether5)</b><br/>192.168.10.1/24 + IPv6 SLAAC<br/><i>L2 HW-Offload (MediaTek MT7621)</i>"]
+            E2["<b>ether2: Server-Zone (DMZ)</b><br/>192.168.20.1/24 + IPv6 SLAAC<br/><i>Firewall-isoliert (DROP zu Heimnetz)</i>"]
+        end
+        E1 -.->|"FastPath"| BR
+        E1 -.->|"Routing & NAT"| E2
+    end
+
+    ONT ==>|"FTTH Dual-Stack"| E1
+
+    %% 3. HEIMNETZ
+    subgraph HEIMNETZ_ZONE ["3. Heimnetz (LAN & WLAN: 192.168.10.0/24)"]
+        direction TB
+        subgraph HEIM_DEVICES ["Private Endgeräte & Netz-Infrastruktur"]
+            direction LR
+            NAS1["<b>ether3: QNAP Port 1</b><br/>• Private SMB Netzlaufwerke<br/>• Foto-Backups & TimeMachine<br/>• QTS Web-Administration<br/><i>1 GBit/s Line-Rate (0% CPU)</i>"]
+            AP["<b>ether4: Archer AXE75 (AP)</b><br/>• <b>Family:</b> 2.4/5/6 GHz (Mobil, Sonos)<br/>• <b>Kids:</b> 2.4/5 GHz (Schul-Laptops)<br/>• <b>IoT_Home:</b> 2.4 GHz (AP-Isoliert)<br/><i>Wi-Fi 6E Tri-Band Access Point</i>"]
+            SWITCH["<b>ether5: Gigabit-Switch</b><br/>• Cat6a Raumverkabelung<br/>• Wanddosen in allen Zimmern<br/>• Arbeitsplatz-PCs & Drucker<br/><i>Gigabit Wire-Speed</i>"]
         end
     end
 
-    %% Verbindungen
-    ONT ===>|"FTTH Dual-Stack"| E1
-    E2 ===>|"Isoliert (Firewall DROP)"| K3D
-    E3 ===>|"L2 HW-Offload (1 GBit/s)"| NAS1
-    E4 ===>|"Gigabit Uplink"| AP_ZONE
-    E5 ===>|"Gigabit Uplink"| SWITCH
+    %% 4. SERVER-ZONE
+    subgraph SERVER_ZONE ["4. Server-Zone (DMZ: 192.168.20.0/24)"]
+        direction TB
+        K3D["<b>QNAP Port 2 (DMZ Adapter)</b><br/>• k3d Kubernetes Cluster (10.42.0.0/16)<br/>• Luanti-Gameserver & Traefik (80/443)<br/><i>Firewall: Isoliert zu Heimnetz (DROP)</i><br/><i>Internet: Image-Pulls & Updates (ACCEPT)</i>"]
+    end
 
-    %% Farb-Styling
-    style INTERNET_ZONE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
-    style ROUTER fill:#eceff1,stroke:#37474f,stroke-width:2px
-    style SERVER_ZONE fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style HEIMNETZ_ZONE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
-    style AP_ZONE fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    %% Physische Uplinks & Verbindungen
+    BR ==>|"L2 HW-Offload (1 GBit/s)"| NAS1
+    BR ==>|"Gigabit Uplink"| AP
+    BR ==>|"Gigabit Uplink"| SWITCH
+    E2 ==>|"1 GBit/s DMZ Uplink"| K3D
+
+    %% Druck-Optimiertes Styling: Hohe Kontraste, klare Ränder, toner-schonend
+    style WAN fill:#e3f2fd,stroke:#1565c0,stroke-width:1.5px
+    style ROUTER fill:#eceff1,stroke:#37474f,stroke-width:1.5px
+    style ROUTING fill:#ffffff,stroke:#90a4ae,stroke-width:1px,stroke-dasharray: 2 2
+    style HEIMNETZ_ZONE fill:#e8f5e9,stroke:#2e7d32,stroke-width:1.5px
+    style HEIM_DEVICES fill:#ffffff,stroke:#81c784,stroke-width:1px,stroke-dasharray: 2 2
+    style SERVER_ZONE fill:#fff3e0,stroke:#e65100,stroke-width:1.5px
+    style ONT fill:#ffffff,stroke:#1565c0,stroke-width:1.5px
+    style E1 fill:#ffffff,stroke:#37474f,stroke-width:1.5px
+    style BR fill:#ffffff,stroke:#2e7d32,stroke-width:1.5px
+    style E2 fill:#ffffff,stroke:#e65100,stroke-width:1.5px
+    style NAS1 fill:#ffffff,stroke:#2e7d32,stroke-width:1.5px
+    style AP fill:#ffffff,stroke:#7b1fa2,stroke-width:1.5px
+    style SWITCH fill:#ffffff,stroke:#2e7d32,stroke-width:1.5px
+    style K3D fill:#ffffff,stroke:#e65100,stroke-width:1.5px
 ```
 
 </div>
@@ -168,11 +254,11 @@ flowchart LR
 
 <div class="no-break">
 
-| Zone / Subnetz | Interface | IP-Bereich (IPv4) | IPv6 | Zielgeräte / Funktion |
-|---|---|---|---|---|
-| **`INTERNET`** | `vlan31-internet` (ether1) | DHCP-Client (Default Route) | DHCPv6-PD (`/64`, Pool: `ipv6-pd`) | Uplink zu A1 / Telematica ONT (VLAN 31) |
-| **`SERVER-ZONE`** | `ether2` | `192.168.20.1/24` (Pool: `.100-.200`) | SLAAC (`advertise=yes`) | QNAP Port 2: k3d Kubernetes, Luanti-Gameserver & Traefik |
-| **`HEIMNETZ`** | `bridge-heimnetz` (ether3-5) | `192.168.10.1/24` (Pool: `.100-.200`) | SLAAC (`advertise=yes`) | Privates Familiennetzwerk (Details unten) |
+| Zone / Subnetz | Interface(s) | IPv4-Gateway & Subnetz | IPv6-Konfiguration | Zielgeräte & Routing-Rolle |
+|:---|:---|:---|:---|:---|
+| **`INTERNET`** | `vlan31-internet` (ether1) | DHCP-Client *(Default Gateway)* | DHCPv6-PD (`/64`, Pool: `ipv6-pd`) | FTTH Uplink zu A1 / Telematica ONT (VLAN 31) |
+| **`SERVER-ZONE`** | `ether2` | `192.168.20.1/24` *(Pool: .100–.200)* | SLAAC (`advertise=yes`) | **QNAP Port 2:** k3d Kubernetes, Luanti-Gameserver & Traefik |
+| **`HEIMNETZ`** | `bridge-heimnetz` (ether3–5) | `192.168.10.1/24` *(Pool: .100–.200)* | SLAAC (`advertise=yes`) | **QNAP Port 1** (SMB), **Archer AXE75** (AP), **Cat6a Switch** |
 
 </div>
 
@@ -187,11 +273,11 @@ flowchart LR
 
 <div class="no-break">
 
-| Netzwerk-Typ | SSID | Frequenzbänder | Zielgruppe / Verwendung | Zugriff auf QNAP Port 1 | Zugriff auf k3d Cluster |
-|---|---|---|---|:---:|:---:|
-| **Haupt-WLAN (Main)** | `Family` | 2,4 GHz / 5 GHz / 6 GHz (Smart Connect) | **Hauptnetz:** Eltern, Arbeitsrechner, Laptops, **Kinder-Smartphones**, **Sonos-Lautsprecher** | **JA (SMB / QTS)** | **JA (kubectl / Lens / Dev)** |
-| **Kindernetz (WLAN)** | `Kids` | 2,4 GHz / 5 GHz (Separates Passwort) | **Schul- & Kinder-Laptops:** Schullaptops, persönliche Laptops der Kinder, Tablets | **JA (SMB / Streaming)** | **JA (Web / Games)** |
-| **IoT-Netzwerk** | `IoT_Home` | 2,4 GHz | **Smart Home:** Saugroboter, Portasplit, isolierte IoT-Aktoren (*AP-Isolation aktiv*) | **NEIN (Geblockt)** | **NEIN (Geblockt)** |
+| Netzwerk-Typ | SSID | Frequenz & Standard | Zielgruppe & Geräte | Zugriff auf QNAP Port 1 | Zugriff auf k3d Cluster |
+|:---|:---|:---|:---|:---:|:---:|
+| **Haupt-WLAN (Main)** | `Family` | 2,4 / 5 / 6 GHz (Wi-Fi 6E, WPA2/WPA3) | Eltern, Arbeitsrechner, Laptops, **Kinder-Handys**, **Sonos-Lautsprecher** | <span class="badge-allow">✅ JA (SMB / QTS)</span> | <span class="badge-allow">✅ JA (kubectl / Dev)</span> |
+| **Kindernetz (WLAN)** | `Kids` | 2,4 / 5 GHz (WPA2/WPA3, sep. PW) | **Schul- & Kinder-Laptops:** Laptops der Kinder, Tablets, Streaming | <span class="badge-allow">✅ JA (SMB / Stream)</span> | <span class="badge-allow">✅ JA (Web / Games)</span> |
+| **IoT-Netzwerk** | `IoT_Home` | 2,4 GHz *(WPA2-only, AP-Isolation)* | **Smart Home:** Saugroboter, Portasplit, isolierte IoT-Aktoren | <span class="badge-drop">⛔ NEIN (Geblockt)</span> | <span class="badge-drop">⛔ NEIN (Geblockt)</span> |
 
 </div>
 
@@ -201,16 +287,16 @@ flowchart LR
 
 <div class="no-break">
 
-| Quell-Zone | Ziel-Zone | Zugriff | Schutzmechanismus & Performance |
-|---|---|:---:|---|
-| **`Kabel-Hauptnetz` (ether5)** | **QNAP Port 1 (SMB / QTS)** | **ERLAUBT** | **L2 Hardware Offloading:** Echte 1 GBit/s Leitungsgeschwindigkeit (<1ms Latenz, 0% CPU-Last) |
-| **`Family` & `Kids` WLAN (ether4)** | **QNAP Port 1 (SMB / QTS)** | **ERLAUBT** | **High-Speed WLAN:** Direktes Gigabit-Switching auf `bridge-heimnetz` |
-| **`HEIMNETZ`** | **`SERVER-ZONE` (k3d Cluster)** | **ERLAUBT** | Firewall Forward `HEIMNETZ -> SERVER-ZONE accept` (`kubectl`, Lens, Web) |
-| **`SERVER-ZONE`** | **`HEIMNETZ` & QNAP Port 1** | **GEBLOCKT** | MikroTik Firewall Rule (`SERVER-ZONE -> HEIMNETZ DROP` in IPv4 & IPv6) |
-| **`SERVER-ZONE`** | **`INTERNET` (WAN)** | **ERLAUBT** | Firewall Forward `SERVER-ZONE -> INTERNET accept` (Image Pulls, Helm, APIs) |
-| **`IoT_Home` (Smart Home)** | **`HEIMNETZ` & QNAP Port 1** | **GEBLOCKT** | AP-Isolation auf dem Archer AXE75 (*Access Local Network: Disabled*) |
-| **`INTERNET`** | **`HEIMNETZ` (Privat)** | **GEBLOCKT** | MikroTik Default Drop, kein NAT / kein Routing |
-| **`INTERNET`** | **`SERVER-ZONE` (k3d Ingress)** | **NUR 80/443** | Optionales Port-Forwarding (dstnat) für Traefik Web-Ingress |
+| Quell-Zone | Ziel-Zone | Status | Protokolle / Ports | Schutzmechanismus & Performance |
+|:---|:---|:---:|:---|:---|
+| **`Kabel-Hauptnetz` (ether5)** | **QNAP Port 1 (SMB / QTS)** | <span class="badge-allow">🟢 ERLAUBT</span> | SMB (445), HTTPS (5001), NFS | **L2 Hardware Offloading:** Echte 1 GBit/s Line-Rate (<1 ms Latenz, 0% CPU-Last) |
+| **`Family` & `Kids` WLAN (ether4)** | **QNAP Port 1 (SMB / QTS)** | <span class="badge-allow">🟢 ERLAUBT</span> | SMB (445), HTTPS (5001), Streaming | **High-Speed WLAN:** Direktes Gigabit-Switching auf `bridge-heimnetz` |
+| **`HEIMNETZ`** | **`SERVER-ZONE` (k3d Cluster)** | <span class="badge-allow">🟢 ERLAUBT</span> | `kubectl` (6443), HTTPS (443), Luanti (30000) | MikroTik Firewall Forward: `HEIMNETZ -> SERVER-ZONE accept` |
+| **`SERVER-ZONE`** | **`HEIMNETZ` & QNAP Port 1** | <span class="badge-drop">🔴 GEBLOCKT</span> | Alle Protokolle & Ports | MikroTik Firewall Rule: `SERVER-ZONE -> HEIMNETZ DROP` (IPv4 & IPv6) |
+| **`SERVER-ZONE`** | **`INTERNET` (WAN)** | <span class="badge-allow">🟢 ERLAUBT</span> | HTTPS (443), HTTP (80), DNS (53), NTP (123) | MikroTik Firewall Forward: `SERVER-ZONE -> INTERNET accept` (Image Pulls, Updates) |
+| **`IoT_Home` (Smart Home)** | **`HEIMNETZ` & QNAP Port 1** | <span class="badge-drop">🔴 GEBLOCKT</span> | Alle Protokolle & Ports | AP-Isolation auf dem Archer AXE75 (*Access Local Network: Disabled*) |
+| **`INTERNET`** | **`HEIMNETZ` (Privat)** | <span class="badge-drop">🔴 GEBLOCKT</span> | Alle eingehenden Anfragen | MikroTik Default Drop: Kein NAT / Routing auf private LAN-Clients |
+| **`INTERNET`** | **`SERVER-ZONE` (k3d Ingress)** | <span class="badge-warn">🟡 80/443</span> | Nur TCP 80 (HTTP) & TCP 443 (HTTPS) | Optionales Port-Forwarding (`dstnat`) exklusiv für Traefik Web-Ingress |
 
 </div>
 
@@ -327,17 +413,18 @@ Falls der Router nicht mehr erreichbar ist oder die Konfiguration zurückgesetzt
 
 <div class="no-break">
 
-| Prüfung / Aktion | RouterOS CLI-Befehl |
-|---|---|
-| **Schnittstellen & Link-Status** | `/interface print` |
-| **Bridge-Ports & HW-Offload** | `/interface bridge port print` |
-| **Sicherheitszonen (Interface-Lists)** | `/interface list member print` |
-| **IPv4 Adressen & Gateways** | `/ip address print` |
-| **IPv4 DHCP-Server Leases** | `/ip dhcp-server lease print` |
-| **IPv6 Prefix Delegation Status** | `/ipv6 dhcp-client print` |
-| **IPv6 Adressen (SLAAC)** | `/ipv6 address print` |
-| **Firewall-Regeln & Drop-Counter** | `/ip firewall filter print stats` |
-| **Aktive Verbindungen (Conntrack)** | `/ip firewall connection print` |
-| **Systemressourcen & CPU-Last** | `/system resource print` |
+| Kategorie | Prüfpunkt / Funktion | RouterOS v7 CLI-Befehl | Erwartetes Ergebnis / Fokus |
+|:---|:---|:---|:---|
+| **Hardware & L2** | Schnittstellen & Link-Status | `/interface print` | Status `R` (Running), 1 GBit/s Full-Duplex |
+| **Hardware & L2** | Bridge-Ports & HW-Offload | `/interface bridge port print` | Flag `H` (HW-Offload) aktiv auf ether3, 4, 5 |
+| **Zonen & Listen** | Sicherheitszonen-Mitglieder | `/interface list member print` | `WAN`, `HEIMNETZ` und `SERVER-ZONE` Zuordnung |
+| **IPv4 Netzwerk** | IP-Adressen & Subnetze | `/ip address print` | `192.168.10.1/24` (Heimnetz), `192.168.20.1/24` (DMZ) |
+| **IPv4 Netzwerk** | DHCP-Server Leases | `/ip dhcp-server lease print` | Aktive Leases & Hostnames im Heimnetz/DMZ |
+| **IPv6 Dual-Stack**| DHCPv6 Prefix Delegation | `/ipv6 dhcp-client print` | Status `bound`, `/64` Präfix bezogen |
+| **IPv6 Dual-Stack**| IPv6 Adress-Pools (SLAAC) | `/ipv6 address print` | Globale IPv6 auf `bridge-heimnetz` und `ether2` |
+| **Firewall** | Filter-Regeln & Drop-Counter | `/ip firewall filter print stats` | Prüfen der Paketzähler für DROP-Regeln |
+| **Firewall** | Aktive Verbindungen (Conntrack) | `/ip firewall connection print` | Aktuelle TCP/UDP Session-Tabelle |
+| **System** | CPU-Last & Systemressourcen | `/system resource print` | CPU-Auslastung (<5% bei L2 Line-Rate) |
+| **System** | Live-Systemprotokoll | `/log print follow-only` | Echtzeit-Logs für DHCP, Login & Security-Events |
 
 </div>
