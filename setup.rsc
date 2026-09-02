@@ -139,7 +139,20 @@
 
 # Request /64 Prefix Delegation from ISP
 :do { /ipv6 dhcp-client remove [ find ] } on-error={}
-/ipv6 dhcp-client add interface=vlan31-internet request=prefix pool-name=ipv6-pd pool-prefix-length=64 add-default-route=yes comment="Internet IPv6 DHCP-PD"
+/ipv6 dhcp-client add interface=vlan31-internet request=prefix pool-name=ipv6-pd pool-prefix-length=64 add-default-route=no comment="Internet IPv6 DHCP-PD" script=":if (\$\"pd-valid\" = 1) do={\
+    :delay 2s;\
+    :local gw [/ipv6 neighbor find interface=vlan31-internet router=yes];\
+    :if ([:len \$gw] > 0) do={\
+        :local gwIp ([/ipv6 neighbor get [:pick \$gw 0] address] . \"%vlan31-internet\");\
+        :do { /ipv6 route remove [ find comment=\"Dynamic IPv6 Default Gateway (A1/Telematica)\" ] } on-error={};\
+        /ipv6 route add dst-address=::/0 gateway=\$gwIp comment=\"Dynamic IPv6 Default Gateway (A1/Telematica)\";\
+    }\
+}"
+
+# Fallback IPv6 Default Route to A1/Telematica BNG Gateway
+:if ([:len [/ipv6 route find comment="Default IPv6 Gateway A1/Telematica"]] = 0) do={
+    /ipv6 route add dst-address=::/0 gateway=fe80::ee38:73ff:fe0f:1005%vlan31-internet comment="Default IPv6 Gateway A1/Telematica"
+}
 
 # Assign IPv6 to Heimnetz & Server-Zone from ISP delegated pool (SLAAC / advertise=yes)
 :do { /ipv6 address remove [ find dynamic=no ] } on-error={}
