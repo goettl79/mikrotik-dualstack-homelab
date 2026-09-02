@@ -276,7 +276,7 @@ flowchart TD
 | Netzwerk-Typ | SSID | Frequenz & Standard | Zielgruppe & Geräte | Zugriff auf QNAP Port 1 | Zugriff auf k3d Cluster |
 |:---|:---|:---|:---|:---:|:---:|
 | **Haupt-WLAN (Main)** | `Family` | 2,4 / 5 / 6 GHz (Wi-Fi 6E, WPA2/WPA3) | Eltern, Arbeitsrechner, Laptops, **Kinder-Handys**, **Sonos-Lautsprecher** | <span class="badge-allow">✅ JA (SMB / QTS)</span> | <span class="badge-allow">✅ JA (kubectl / Dev)</span> |
-| **Kindernetz (WLAN)** | `Kids` | 2,4 / 5 GHz (WPA2/WPA3, sep. PW) | **Schul- & Kinder-Laptops:** Laptops der Kinder, Tablets, Streaming | <span class="badge-allow">✅ JA (SMB / Stream)</span> | <span class="badge-allow">✅ JA (Web / Games)</span> |
+| **Kindernetz (WLAN)** | `Kids` | 2,4 / 5 GHz (Cloudflare Family DNS, sep. PW) | **Schul- & Kinder-Laptops:** Laptops der Kinder, Tablets, Streaming *(Jugendschutz aktiv)* | <span class="badge-allow">✅ JA (SMB / Stream)</span> | <span class="badge-allow">✅ JA (Web / Games)</span> |
 | **IoT-Netzwerk** | `IoT_Home` | 2,4 GHz *(WPA2-only, AP-Isolation)* | **Smart Home:** Saugroboter, Portasplit, isolierte IoT-Aktoren | <span class="badge-drop">⛔ NEIN (Geblockt)</span> | <span class="badge-drop">⛔ NEIN (Geblockt)</span> |
 
 </div>
@@ -290,7 +290,9 @@ flowchart TD
 | **1. Stufe (Lokal)** | **MikroTik RAM-Cache** | `192.168.10.1` / IPv6 SLAAC | **~1–3 ms** | Blitzschnelle lokale Auflösung für alle Heimnetz- & WLAN-Clients |
 | **2. Stufe (Primär)** | **Telematica DNS (Peer)** | `94.16.16.94`, `94.16.16.16` | **~5–8 ms** | Provider-eigene Resolver im Telematica/A1-Backbone (via DHCP) |
 | **3. Stufe (Fallback)** | **Cloudflare DNS** | `1.1.1.1`, `2606:4700:4700::1111` | **~18 ms** | Redundanter Fallback bei Provider-Wartungsarbeiten oder Störungen |
+| **KIDS-Schutzprofil** | **Cloudflare Family DNS** | `1.1.1.3`, `1.0.0.3` | **~18 ms** | Filtert automatisch Malware & jugendgefährdende Inhalte (Adult-Content) |
 
+* **KIDS Jugendschutz-Enforcement:** Geräte der Adressliste `KIDS-DEVICES` erhalten per DHCP Option 6 direkt Cloudflare Family DNS. Port 53 (DNS) wird per Firewall-NAT zwingend umgeleitet (Manipulationsschutz), und DoT (Port 853) wird gesperrt.
 * **Server-Zone Entkopplung:** Pods & Container in der `SERVER-ZONE` (`192.168.20.0/24`) erhalten per DHCP direkt externe DNS-Server (`1.1.1.1`, `8.8.8.8`), um den Router-Cache vor Lastspitzen durch Container-Image-Pulls zu schützen.
 
 </div>
@@ -308,6 +310,8 @@ flowchart TD
 | **`HEIMNETZ`** | **`SERVER-ZONE` (k3d Cluster)** | <span class="badge-allow">🟢 ERLAUBT</span> | `kubectl` (6443), HTTPS (443), Luanti (30000) | MikroTik Firewall Forward: `HEIMNETZ -> SERVER-ZONE accept` |
 | **`SERVER-ZONE`** | **`HEIMNETZ` & QNAP Port 1** | <span class="badge-drop">🔴 GEBLOCKT</span> | Alle Protokolle & Ports | MikroTik Firewall Rule: `SERVER-ZONE -> HEIMNETZ DROP` (IPv4 & IPv6) |
 | **`SERVER-ZONE`** | **`INTERNET` (WAN)** | <span class="badge-allow">🟢 ERLAUBT</span> | HTTPS (443), HTTP (80), DNS (53), NTP (123) | MikroTik Firewall Forward: `SERVER-ZONE -> INTERNET accept` (Image Pulls, Updates) |
+| **`KIDS-DEVICES`** | **`INTERNET` (DNS Port 53)** | <span class="badge-warn">🟡 1.1.1.3</span> | UDP & TCP 53 | **DNS-Zwang (dst-nat):** Alle DNS-Anfragen werden zwingend auf Cloudflare Family umgeleitet |
+| **`KIDS-DEVICES`** | **`INTERNET` (DoT Port 853)** | <span class="badge-drop">🔴 GEBLOCKT</span> | TCP 853 | **DoT-Sperre:** Verhindert Umgehung des Filters via Android/iOS Private DNS |
 | **`IoT_Home` (Smart Home)** | **`HEIMNETZ` & QNAP Port 1** | <span class="badge-drop">🔴 GEBLOCKT</span> | Alle Protokolle & Ports | AP-Isolation auf dem Archer AXE75 (*Access Local Network: Disabled*) |
 | **`INTERNET`** | **`HEIMNETZ` (Privat)** | <span class="badge-drop">🔴 GEBLOCKT</span> | Alle eingehenden Anfragen | MikroTik Default Drop: Kein NAT / Routing auf private LAN-Clients |
 | **`INTERNET`** | **`SERVER-ZONE` (k3d Ingress)** | <span class="badge-warn">🟡 80/443</span> | Nur TCP 80 (HTTP) & TCP 443 (HTTPS) | Optionales Port-Forwarding (`dstnat`) exklusiv für Traefik Web-Ingress |
@@ -387,6 +391,16 @@ flowchart TD
 #### C. Sonos-Lautsprecher
 - [ ] Alle Sonos-Boxen mit dem WLAN **`Family`** verbinden (oder per LAN-Kabel an Raumdosen anschließen).
 
+#### D. Kinder-Endgeräte (KIDS-WLAN & Jugendschutz)
+- [ ] **WLAN-Verbindung:** Schul- & Kinder-Laptops, Tablets und Smartphones mit SSID **`Kids`** verbinden.
+- [ ] **MAC-Randomisierung deaktivieren:** In den WLAN-Einstellungen des Geräts **„Private WLAN-Adresse“ auf „Aus“** stellen.
+- [ ] **Als geschütztes KIDS-Gerät im MikroTik registrieren:**
+  ```routeros
+  # Gerät als statischen Lease mit Cloudflare Family DNS & Adressliste KIDS-DEVICES festlegen:
+  /ip dhcp-server lease make-static [ find mac-address="XX:XX:XX:XX:XX:XX" ]
+  /ip dhcp-server lease set [ find mac-address="XX:XX:XX:XX:XX:XX" ] dhcp-option-set=optset-kids address-list=KIDS-DEVICES comment="Kind 1 Laptop"
+  ```
+
 ---
 
 ### Phase 4: Sicherheits- & Funktionstests (Smoke Tests)
@@ -440,6 +454,7 @@ Falls der Router nicht mehr erreichbar ist oder die Konfiguration zurückgesetzt
 | **Firewall** | Filter-Regeln & Drop-Counter | `/ip firewall filter print stats` | Prüfen der Paketzähler für DROP-Regeln |
 | **Firewall** | Aktive Verbindungen (Conntrack) | `/ip firewall connection print` | Aktuelle TCP/UDP Session-Tabelle |
 | **DNS & Cache** | Upstream-Server & Cache-RAM | `/ip dns print` | Telematica `dynamic-servers` & Cache-Größe |
+| **Jugendschutz** | Aktive geschützte KIDS-Geräte | `/ip firewall address-list print where list="KIDS-DEVICES"` | Registrierte Kinder-Laptops & Tablets |
 | **System** | CPU-Last & Systemressourcen | `/system resource print` | CPU-Auslastung (<5% bei L2 Line-Rate) |
 | **System** | Live-Systemprotokoll | `/log print follow-only` | Echtzeit-Logs für DHCP, Login & Security-Events |
 

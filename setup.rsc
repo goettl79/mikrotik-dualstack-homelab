@@ -126,6 +126,13 @@
 :do { /ip dhcp-server lease remove [ find mac-address="50:91:E3:F4:0B:41" ] } on-error={}
 /ip dhcp-server lease add address=192.168.10.2 mac-address=50:91:E3:F4:0B:40 server=dhcp-heimnetz comment="TP-Link Archer AXE75 (Wi-Fi 6E AP)"
 
+# --- DHCP Jugendschutz Option 6 für KIDS (Cloudflare Family 1.1.1.3 & 1.0.0.3) ---
+:do { /ip dhcp-server option remove [ find name="dns-cloudflare-family" ] } on-error={}
+/ip dhcp-server option add name=dns-cloudflare-family code=6 value="'\x01\x01\x01\x03\x01\x00\x00\x03'" comment="Cloudflare Family DNS Filter (Malware & Adult Content Block)"
+
+:do { /ip dhcp-server option sets remove [ find name="optset-kids" ] } on-error={}
+/ip dhcp-server option sets add name=optset-kids options=dns-cloudflare-family comment="Option-Set fuer Kids-Geraete"
+
 # --- 2. SERVER-ZONE (192.168.20.0/24 - k3d Cluster) ---
 /ip pool add name=pool-server-zone ranges=192.168.20.100-192.168.20.200 comment="DHCP Pool für Server-Zone (k3d)"
 :if ([:len [/ip address find address="192.168.20.1/24" and interface=ether2]] = 0) do={
@@ -194,6 +201,10 @@
 # --- NAT ---
 /ip firewall nat add chain=srcnat out-interface-list=INTERNET action=masquerade comment="NAT: Masquerade für ausgehenden Internet-Verkehr"
 
+# DNS-Enforcement: Port 53 Anfragen von KIDS-DEVICES zwingend auf Cloudflare Family (1.1.1.3) umleiten (Manipulationsschutz)
+/ip firewall nat add chain=dstnat src-address-list=KIDS-DEVICES protocol=udp dst-port=53 action=dst-nat to-addresses=1.1.1.3 to-ports=53 comment="KIDS: Force Cloudflare Family DNS (UDP)"
+/ip firewall nat add chain=dstnat src-address-list=KIDS-DEVICES protocol=tcp dst-port=53 action=dst-nat to-addresses=1.1.1.3 to-ports=53 comment="KIDS: Force Cloudflare Family DNS (TCP)"
+
 # --- Input Chain ---
 /ip firewall filter add chain=input connection-state=established,related action=accept comment="Input: Etablierte Verbindungen erlauben"
 /ip firewall filter add chain=input connection-state=invalid action=drop comment="Input: Invalide Pakete verwerfen"
@@ -206,6 +217,9 @@
 # --- Forward Chain ---
 /ip firewall filter add chain=forward connection-state=established,related action=accept comment="Forward: Etablierte Verbindungen erlauben"
 /ip firewall filter add chain=forward connection-state=invalid action=drop comment="Forward: Invalide Pakete verwerfen"
+
+# Jugendschutz: DNS-over-TLS (Port 853) fuer KIDS-DEVICES sperren (verhindert Umgehung via Android/iOS Private DNS)
+/ip firewall filter add chain=forward src-address-list=KIDS-DEVICES protocol=tcp dst-port=853 action=drop comment="KIDS: Block DNS-over-TLS (Bypass Protection)"
 
 # Ausgehender Internetzugriff
 /ip firewall filter add chain=forward in-interface-list=HEIMNETZ out-interface-list=INTERNET action=accept comment="Forward: Heimnetz -> Internet erlauben"

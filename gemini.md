@@ -43,7 +43,7 @@ Du bist ein Senior Network & Security Engineer. Deine Aufgabe ist es, ein vollst
     - *Zugriff VERWEHRT:* `IoT_Home` (AP-Isolation), `SERVER-ZONE` (Firewall DROP) und `INTERNET` (Default Drop)
   - **ether4 (TP-Link Archer AXE75 im AP-Modus):**
     - Haupt-WLAN (`Family`, 2.4 / 5 / 6 GHz / Smart Connect): Eltern, Laptops, Arbeitsrechner, **Kinder-Smartphones**, **Sonos-Lautsprecher** $\rightarrow$ Voller Zugriff auf Heimnetz, QNAP Port 1 & k3d Server-Zone
-    - Kindernetz (`Kids`, 2.4 / 5 GHz): **Schullaptops & persönliche Laptops der Kinder**, Tablets, Konsolen $\rightarrow$ Voller Zugriff auf Heimnetz, Streaming & QNAP Port 1 (keine AP-Isolation)
+    - Kindernetz (`Kids`, 2.4 / 5 GHz): **Schullaptops & persönliche Laptops der Kinder**, Tablets, Konsolen $\rightarrow$ Voller Zugriff auf Heimnetz, Streaming & QNAP Port 1 (keine AP-Isolation). **Jugendschutz:** Zuweisung von Cloudflare Family DNS (`1.1.1.3`) per DHCP Option 6, DNS-Zwang per Firewall-NAT und DoT-Sperre (Port 853).
     - IoT-Netzwerk (`IoT_Home`, 2.4 GHz): Smart Home, Saugroboter $\rightarrow$ AP-Isolation aktiv (kein Zugriff auf private Daten)
   - **ether5 (Kabel-Hauptnetz):**
     - Zentraler Switch mit Cat6a Raumverkabelung in alle Zimmer $\rightarrow$ Voller Zugriff auf Heimnetz, QNAP Port 1 & k3d Server-Zone
