@@ -38,6 +38,13 @@
 /ip upnp set enabled=no
 /ip cloud set ddns-enabled=no update-time=no
 
+# Clock & NTP Client (Zeitsynchronisation für genaue Logs & Systemzeit)
+/system clock set time-zone-name=Europe/Vienna
+/system ntp client set enabled=yes
+:do { /system ntp client servers remove [ find ] } on-error={}
+/system ntp client servers add address=pool.ntp.org comment="NTP Zeitserver Pool"
+/system ntp client servers add address=time.cloudflare.com comment="Cloudflare NTP Fallback"
+
 # ------------------------------------------------------------------------------
 # 2. Interface Configuration & Bridge Setup
 # ------------------------------------------------------------------------------
@@ -156,8 +163,8 @@
     :local gw [/ipv6 neighbor find interface=vlan31-internet router=yes];\
     :if ([:len \$gw] > 0) do={\
         :local gwIp ([/ipv6 neighbor get [:pick \$gw 0] address] . \"%vlan31-internet\");\
-        :do { /ipv6 route remove [ find comment=\"Dynamic IPv6 Default Gateway (A1/Telematica)\" ] } on-error={};\
-        /ipv6 route add dst-address=::/0 gateway=\$gwIp comment=\"Dynamic IPv6 Default Gateway (A1/Telematica)\";\
+        :do { /ipv6 route remove [ find comment~\"Default IPv6 Gateway\" ] } on-error={};\
+        /ipv6 route add dst-address=::/0 gateway=\$gwIp comment=\"Dynamic Default IPv6 Gateway (A1/Telematica)\";\
     }\
 }"
 
