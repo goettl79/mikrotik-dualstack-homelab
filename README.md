@@ -1,3 +1,103 @@
+<style>
+  @media print {
+    @page {
+      size: A4 portrait;
+      margin: 1.2cm 1.2cm 1.4cm 1.2cm;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-size: 9pt;
+      line-height: 1.35;
+      color: #111;
+      background: #fff;
+    }
+    h1 {
+      font-size: 15pt;
+      margin-top: 0;
+      margin-bottom: 0.25em;
+      page-break-after: avoid;
+      break-after: avoid;
+      color: #0b2545;
+    }
+    h2 {
+      font-size: 11.5pt;
+      margin-top: 0.8em;
+      margin-bottom: 0.3em;
+      page-break-after: avoid;
+      break-after: avoid;
+      border-bottom: 1px solid #134074;
+      padding-bottom: 2px;
+      color: #134074;
+    }
+    h3 {
+      font-size: 9.5pt;
+      margin-top: 0.6em;
+      margin-bottom: 0.2em;
+      page-break-after: avoid;
+      break-after: avoid;
+      color: #1d2d44;
+    }
+    table {
+      width: 100% !important;
+      border-collapse: collapse !important;
+      margin: 0.4em 0 0.8em 0 !important;
+      font-size: 8pt !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #bbb !important;
+      padding: 3.5px 6px !important;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background-color: #eef4f8 !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      font-weight: 600;
+      color: #0b2545;
+    }
+    pre, code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 8pt;
+    }
+    pre {
+      background: #f8f9fa !important;
+      border: 1px solid #ddd !important;
+      padding: 5px 8px;
+      border-radius: 3px;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    p, ul, ol {
+      margin-top: 0.25em;
+      margin-bottom: 0.4em;
+    }
+    ul, ol {
+      padding-left: 18px;
+    }
+    li {
+      margin-bottom: 0.15em;
+    }
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+    .no-break {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid #ddd;
+      margin: 0.6em 0;
+    }
+  }
+</style>
+
 # MikroTik hEX (RB750Gr3) Dual-Stack Provisioning
 
 Automatisierte Bereitstellung und gehärtete Konfiguration für MikroTik hEX Router (RouterOS v7) mit nativem Dual-Stack (IPv4 / IPv6-PD), FTTH VLAN 31 WAN-Uplink (A1/Telematica ONT) und isolierter **Server-Zone für k3d Kubernetes & Luanti-Gameserver**.
@@ -5,6 +105,8 @@ Automatisierte Bereitstellung und gehärtete Konfiguration für MikroTik hEX Rou
 ---
 
 ## 1. Netzwerk-Topologie & Architektur
+
+<div class="no-break">
 
 ```mermaid
 flowchart LR
@@ -50,7 +152,7 @@ flowchart LR
     E4 ===>|"Gigabit Uplink"| AP_ZONE
     E5 ===>|"Gigabit Uplink"| SWITCH
 
-    %% Farb-Styling für LinkedIn & GitHub
+    %% Farb-Styling
     style INTERNET_ZONE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
     style ROUTER fill:#eceff1,stroke:#37474f,stroke-width:2px
     style SERVER_ZONE fill:#fff3e0,stroke:#e65100,stroke-width:2px
@@ -58,9 +160,13 @@ flowchart LR
     style AP_ZONE fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 ```
 
+</div>
+
 ---
 
 ## 2. Subnetze & Port-Mapping
+
+<div class="no-break">
 
 | Zone / Subnetz | Interface | IP-Bereich (IPv4) | IPv6 | Zielgeräte / Funktion |
 |---|---|---|---|---|
@@ -68,13 +174,18 @@ flowchart LR
 | **`SERVER-ZONE`** | `ether2` | `192.168.20.1/24` (Pool: `.100-.200`) | SLAAC (`advertise=yes`) | QNAP Port 2: k3d Kubernetes, Luanti-Gameserver & Traefik |
 | **`HEIMNETZ`** | `bridge-heimnetz` (ether3-5) | `192.168.10.1/24` (Pool: `.100-.200`) | SLAAC (`advertise=yes`) | Privates Familiennetzwerk (Details unten) |
 
-### Port-Belegung im `HEIMNETZ` (ether3, ether4, ether5)
+</div>
 
+### Port-Belegung im `HEIMNETZ` (ether3, ether4, ether5)
 * **`ether3`:** QNAP NAS Port 1 $\rightarrow$ Interne Netzlaufwerke (SMB), automatische Foto-Backups, Cloud-Synchronisation und QTS Web-Administration.
 * **`ether4`:** TP-Link Archer AXE75 (AP-Modus) $\rightarrow$ Verteilt die WLAN-Netzwerke (`Family`, `Kids`, `IoT_Home`).
 * **`ether5`:** Kabel-Hauptnetz $\rightarrow$ Zentraler Switch mit Cat6a Raumverkabelung in alle Zimmer.
 
+<div class="page-break"></div>
+
 ### WLAN SSIDs auf dem TP-Link Archer AXE75 (AP-Modus)
+
+<div class="no-break">
 
 | Netzwerk-Typ | SSID | Frequenzbänder | Zielgruppe / Verwendung | Zugriff auf QNAP Port 1 | Zugriff auf k3d Cluster |
 |---|---|---|---|:---:|:---:|
@@ -82,9 +193,13 @@ flowchart LR
 | **Kindernetz (WLAN)** | `Kids` | 2,4 GHz / 5 GHz (Separates Passwort) | **Schul- & Kinder-Laptops:** Schullaptops, persönliche Laptops der Kinder, Tablets | **JA (SMB / Streaming)** | **JA (Web / Games)** |
 | **IoT-Netzwerk** | `IoT_Home` | 2,4 GHz | **Smart Home:** Saugroboter, Portasplit, isolierte IoT-Aktoren (*AP-Isolation aktiv*) | **NEIN (Geblockt)** | **NEIN (Geblockt)** |
 
+</div>
+
 ---
 
 ## 3. Zugriffs- & Sicherheits-Matrix
+
+<div class="no-break">
 
 | Quell-Zone | Ziel-Zone | Zugriff | Schutzmechanismus & Performance |
 |---|---|:---:|---|
@@ -97,31 +212,31 @@ flowchart LR
 | **`INTERNET`** | **`HEIMNETZ` (Privat)** | **GEBLOCKT** | MikroTik Default Drop, kein NAT / kein Routing |
 | **`INTERNET`** | **`SERVER-ZONE` (k3d Ingress)** | **NUR 80/443** | Optionales Port-Forwarding (dstnat) für Traefik Web-Ingress |
 
+</div>
+
 ---
 
 ## 4. High-Performance & Hardware-Offloading (NAS-Zugriff)
 
-- **MediaTek MT7621 Switch-Chip (Hardware Offloading `hw=yes`):**
-  - Der Datenverkehr zwischen **Kabel-Hauptnetz (`ether5`)**, **WLAN Access Point (`ether4`)** und **QNAP NAS Port 1 (`ether3`)** wird direkt in Hardware auf dem Switch-Chip des MikroTik hEX verarbeitet.
-  - **Zero CPU-Overhead:** Große Dateitransfers (SMB/NFS, TimeMachine Backups, Videostreaming) belasten den Router-Prozessor nicht und laufen mit voller Gigabit-Drahtgeschwindigkeit (115–120 MB/s).
-- **Wi-Fi 6E Tri-Band Durchsatz:**
-  - Laptops und Smartphones auf `SSID: Family` nutzen 5 GHz und 6 GHz Kanäle für maximale WLAN-Datenraten direkt zum NAS.
+* **MediaTek MT7621 Switch-Chip (Hardware Offloading `hw=yes`):**
+  * Der Datenverkehr zwischen **Kabel-Hauptnetz (`ether5`)**, **WLAN Access Point (`ether4`)** und **QNAP NAS Port 1 (`ether3`)** wird direkt in Hardware auf dem Switch-Chip des MikroTik hEX verarbeitet.
+  * **Zero CPU-Overhead:** Große Dateitransfers (SMB/NFS, TimeMachine Backups, Videostreaming) belasten den Router-Prozessor nicht und laufen mit voller Gigabit-Drahtgeschwindigkeit (115–120 MB/s).
+* **Wi-Fi 6E Tri-Band Durchsatz:**
+  * Laptops und Smartphones auf `SSID: Family` nutzen 5 GHz und 6 GHz Kanäle für maximale WLAN-Datenraten direkt zum NAS.
+* **Server-Zone Isolation:** 
+  * `HEIMNETZ` $\rightarrow$ `SERVER-ZONE` ist erlaubt (Management / `kubectl` / Dev-Testing).
+  * `SERVER-ZONE` $\rightarrow$ `HEIMNETZ` wird **strikt geblockt** (`drop` in IPv4 & IPv6).
+  * `SERVER-ZONE` $\rightarrow$ `INTERNET` ist erlaubt (Image-Pulls von `docker.io`, `registry.k8s.io`, `ghcr.io`, Helm Repos).
+* **Router-Management & Hardening (Management Plane):**
+  * **Dienste gehärtet:** Telnet, FTP, HTTP (WWW), API und API-SSL sind **vollständig deaktiviert**.
+  * **Zugriffsbeschränkung:** WinBox und SSH sind ausschließlich aus dem `HEIMNETZ` (`192.168.10.0/24`) erreichbar.
+  * **SSH-Sicherheit:** `strong-crypto=yes` forciert moderne kryptografische Ciphers.
+  * **Layer-2 Härtung:** MAC-Server & MAC-Winbox sind strikt auf die Interface-Liste `HEIMNETZ` beschränkt; MAC-Ping ist deaktiviert.
+  * **Schutz vor Informationslecks:** Neighbor Discovery (MNDP/CDP/LLDP) ist auf `INTERNET` und `SERVER-ZONE` deaktiviert (`discover-interface-list=HEIMNETZ`).
+  * **Tools deaktiviert:** Bandwidth-Server, RoMON, UPnP, Web-Proxies und Cloud DDNS sind abgeschaltet.
+  * **Hardware-Disziplin:** Alle LEDs über `/system leds disable [ find ]` deaktiviert.
 
-- **Server-Zone Isolation:** 
-  - `HEIMNETZ` $\rightarrow$ `SERVER-ZONE` ist erlaubt (Management / `kubectl` / Dev-Testing).
-  - `SERVER-ZONE` $\rightarrow$ `HEIMNETZ` wird **strikt geblockt** (`drop` in IPv4 & IPv6).
-  - `SERVER-ZONE` $\rightarrow$ `INTERNET` ist erlaubt (Image-Pulls von `docker.io`, `registry.k8s.io`, `ghcr.io`, Helm Repos).
-- **Router-Management & Hardening (Management Plane):**
-  - **Dienste gehärtet:** Telnet, FTP, HTTP (WWW), API und API-SSL sind **vollständig deaktiviert**.
-  - **Zugriffsbeschränkung:** WinBox und SSH sind ausschließlich aus dem `HEIMNETZ` (`192.168.10.0/24`) erreichbar.
-  - **SSH-Sicherheit:** `strong-crypto=yes` forciert moderne kryptografische Ciphers.
-  - **Layer-2 Härtung:** MAC-Server & MAC-Winbox sind strikt auf die Interface-Liste `HEIMNETZ` beschränkt; MAC-Ping ist deaktiviert.
-  - **Schutz vor Informationslecks:** Neighbor Discovery (MNDP/CDP/LLDP) ist auf `INTERNET` und `SERVER-ZONE` deaktiviert (`discover-interface-list=HEIMNETZ`).
-  - **Tools deaktiviert:** Bandwidth-Server, RoMON, UPnP, Web-Proxies und Cloud DDNS sind abgeschaltet.
-- **Hardware-Disziplin:**
-  - Alle LEDs dauerhaft deaktiviert (`all-leds-off=always`).
-
----
+<div class="page-break"></div>
 
 ## 5. Checkliste für Installation & Inbetriebnahme
 
@@ -138,7 +253,7 @@ flowchart LR
 - [ ] **1. Router-Verbindung herstellen:** PC per LAN-Kabel an `ether3`, `ether4` oder `ether5` anschließen (Router hat ab Werk IP `192.168.88.1`).
 - [ ] **2. Deployment-Skript ausführen:**
   ```bash
-  ./deploy.sh
+  ./deploy.sh [TARGET_IP] [USER] [PORT] [PASSWORD]
   ```
 - [ ] **3. Admin-Passwort setzen:** Sofort via SSH oder WinBox auf `192.168.10.1` verbinden und ein starkes Passwort vergeben:
   ```routeros
@@ -158,51 +273,28 @@ flowchart LR
 
 #### A. TP-Link Archer AXE75 (WLAN Access Point)
 - [ ] **Betriebsmodus:** In der TP-Link Web-GUI auf **Access Point (AP-Modus)** umstellen.
-- [ ] **SSID `Family` einrichten:**
-  - Bänder: 2.4 GHz, 5 GHz, 6 GHz (Smart Connect empfohlen)
-  - Sicherheit: WPA2/WPA3-Personal
-  - Verwendung: Eltern, Arbeitsrechner, Laptops, **Kinder-Smartphones**, **Sonos-Lautsprecher**
-- [ ] **SSID `Kids` einrichten:**
-  - Bänder: 2.4 GHz / 5 GHz
-  - Sicherheit: WPA2/WPA3-Personal (eigenes Passwort)
-  - Verwendung: **Schullaptops & persönliche Laptops der Kinder**, Tablets, Konsolen (keine AP-Isolation)
-  - Zeitsteuerung / Kinderschutz (optional): WLAN-Zeitplan (Wi-Fi Schedule / Nachtabschaltung) für `Kids` SSID aktivieren.
-- [ ] **SSID `IoT_Home` einrichten:**
-  - Band: Nur 2.4 GHz
-  - Sicherheit: WPA2-Personal
-  - **KRITISCH:** Option **"Access Local Network" / "AP-Isolation" AKTIVIEREN** (Geräte dürfen nicht ins LAN funken)
-  - Verwendung: Saugroboter, Portasplit, smarte Steckdosen
+- [ ] **SSID `Family` einrichten:** 2.4 / 5 / 6 GHz (Smart Connect), WPA2/WPA3 (Eltern, Laptops, Sonos, Kinder-Handys).
+- [ ] **SSID `Kids` einrichten:** 2.4 / 5 GHz (Separates Passwort für Schul- & Kinder-Laptops, Tablets).
+- [ ] **SSID `IoT_Home` einrichten:** Nur 2.4 GHz, WPA2. **"Access Local Network" / "AP-Isolation" AKTIVIEREN** (Smart Home).
 
 #### B. QNAP NAS (QTS Betriebssystem)
 - [ ] **Port 1 (Adapter 1 - Heimnetz):** Auf DHCP stellen $\rightarrow$ Erhält IP im Bereich `192.168.10.x`.
 - [ ] **Port 2 (Adapter 2 - Server-Zone):** Auf DHCP stellen $\rightarrow$ Erhält IP im Bereich `192.168.20.x`.
-- [ ] **Netzwerk-Prüfung:** Unter *Netzwerk- und virtueller Switch* sicherstellen, dass **KEINE Bridge** zwischen Adapter 1 und Adapter 2 existiert!
-- [ ] **Dienstebindung:** In der QTS-Systemsteuerung sicherstellen:
-  - QTS Web-GUI (8080/443) und SMB-Dateifreigaben nur auf **Adapter 1** lauschen lassen.
-  - k3d Kubernetes Cluster / Docker Container an **Adapter 2** binden.
-- [ ] **QuFirewall (optional, empfohlen):** Auf Adapter 2 Zugriffe auf QTS-Systemdienste blockieren.
+- [ ] **Netzwerk-Prüfung:** Sicherstellen, dass **KEINE Bridge** zwischen Adapter 1 und Adapter 2 existiert.
+- [ ] **Dienstebindung:** QTS Web-GUI & SMB nur auf Adapter 1; k3d Container-Cluster an Adapter 2 binden.
 
 #### C. Sonos-Lautsprecher
 - [ ] Alle Sonos-Boxen mit dem WLAN **`Family`** verbinden (oder per LAN-Kabel an Raumdosen anschließen).
-- [ ] Sonos App auf Smartphone öffnen und Musikwiedergabe / AirPlay / Spotify Connect testen.
 
 ---
 
 ### Phase 4: Sicherheits- & Funktionstests (Smoke Tests)
-- [ ] **Test 1: Internetzugang (IPv4 & IPv6)**
-  - Vom PC aus `ping 1.1.1.1` und `ping6 google.com` prüfen.
-- [ ] **Test 2: High-Speed NAS-Zugriff (SMB)**
-  - Netzlaufwerk von QNAP Port 1 (`\\192.168.10.x`) einbinden und eine Testdatei kopieren (Ziel: ~115 MB/s).
-- [ ] **Test 3: k3d Cluster Management aus Heimnetz**
-  - Vom Arbeits-PC aus: `kubectl get nodes` oder Web-Zugriff auf Port 2 testen $\rightarrow$ **Erfolgreich**.
-- [ ] **Test 4: DMZ-Isolation (Kritischer Test)**
-  - Aus einem k3d Pod oder von Port 2: `ping 192.168.10.1` und `ping 192.168.10.x` testen $\rightarrow$ **Muss fehlschlagen (Timeout/DROP)**.
-  - Drop-Counter auf MikroTik prüfen:
-    ```routeros
-    /ip firewall filter print stats where comment~"CRITICAL"
-    ```
+- [ ] **Test 1: Internetzugang:** `ping 1.1.1.1` und `ping6 google.com` prüfen.
+- [ ] **Test 2: High-Speed NAS-Zugriff:** SMB-Freigabe (`\\192.168.10.x`) einbinden (Ziel: ~115 MB/s).
+- [ ] **Test 3: k3d Cluster Management:** `kubectl get nodes` aus dem Heimnetz ausführen $\rightarrow$ **Erfolgreich**.
+- [ ] **Test 4: DMZ-Isolation:** Aus Pod / Port 2: `ping 192.168.10.1` testen $\rightarrow$ **Muss fehlschlagen (DROP)**.
 
----
+<div class="page-break"></div>
 
 ## 6. Checkliste für den laufenden Betrieb & Wartung
 
@@ -212,7 +304,6 @@ flowchart LR
   /export file=backup-config
   /system backup save name=backup-system
   ```
-  *(Die `.rsc` und `.backup` Dateien anschließend per SCP oder WinBox auf den PC/NAS sichern).*
 - [ ] **2. RouterOS Firmware-Updates prüfen (Stable Channel):**
   ```routeros
   /system package update check-for-updates
@@ -226,7 +317,27 @@ flowchart LR
 ## 7. Notfall / Factory Reset
 Falls der Router nicht mehr erreichbar ist oder die Konfiguration zurückgesetzt werden soll:
 1. Stromstecker des MikroTik hEX ziehen.
-2. Reset-Taste gedrückt halten und Strom anschließen.
-3. Warten bis die ACT-LED blinkt (ca. 5 Sek.) und Taste sofort loslassen.
+2. Reset-Taste (`RES`) mit einer Büroklammer gedrückt halten und Strom anschließen.
+3. Warten bis die `USR`-LED blinkt (ca. 5–8 Sek.) und Taste sofort loslassen.
 4. Router startet mit Werkseinstellungen (`192.168.88.1`). Anschließend `./deploy.sh` erneut ausführen.
 
+---
+
+## 8. RouterOS Quick-Reference Cheat Sheet
+
+<div class="no-break">
+
+| Prüfung / Aktion | RouterOS CLI-Befehl |
+|---|---|
+| **Schnittstellen & Link-Status** | `/interface print` |
+| **Bridge-Ports & HW-Offload** | `/interface bridge port print` |
+| **Sicherheitszonen (Interface-Lists)** | `/interface list member print` |
+| **IPv4 Adressen & Gateways** | `/ip address print` |
+| **IPv4 DHCP-Server Leases** | `/ip dhcp-server lease print` |
+| **IPv6 Prefix Delegation Status** | `/ipv6 dhcp-client print` |
+| **IPv6 Adressen (SLAAC)** | `/ipv6 address print` |
+| **Firewall-Regeln & Drop-Counter** | `/ip firewall filter print stats` |
+| **Aktive Verbindungen (Conntrack)** | `/ip firewall connection print` |
+| **Systemressourcen & CPU-Last** | `/system resource print` |
+
+</div>
