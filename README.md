@@ -156,14 +156,14 @@ flowchart TD
 
         subgraph HEIMNETZ_ZONE ["4. HEIMNETZ (192.168.10.0/24)"]
             direction TB
-            NAS1["<b>QNAP Port 1: Private Dienste</b><br/>• SMB Speicher & QTS Management<br/>• Lokale Backups (115-120 MB/s)"]
-            SWITCH["<b>Kabel-Hauptnetz (Cat6a)</b><br/>• Raumdosen im ganzen Haus"]
+            NAS1["<b>QNAP Port 1: Private Dienste</b><br/>• SMB Speicher & QTS Verwaltung<br/>• Lokale Backups (115–120 MB/s)"]
+            SWITCH["<b>Kabel-Hauptnetz (Cat6a)</b><br/>• Zentraler Gigabit-Switch<br/>• Raumdosen im ganzen Haus"]
             
-            subgraph AP_ZONE ["TP-Link Archer AXE75 (Wi-Fi 6E AP)"]
+            subgraph AP_ZONE ["TP-Link Archer AXE75<br/>(Wi-Fi 6E AP-Modus)"]
                 direction TB
-                SSID_FAM["<b>Family (2.4/5/6 GHz):</b> Eltern, Laptops, Sonos, Handys"]
-                SSID_KIDS["<b>Kids (2.4/5 GHz):</b> Schullaptops, Tablets (WLAN-Timer)"]
-                SSID_IOT["<b>IoT_Home (2.4 GHz):</b> Smart Home (AP-Isolation aktiv)"]
+                SSID_FAM["<b>SSID: Family (2.4/5/6 GHz)</b><br/>• Eltern, Laptops & PCs<br/>• Kinder-Handys, Sonos"]
+                SSID_KIDS["<b>SSID: Kids (2.4/5 GHz)</b><br/>• Schul- & Kinder-Laptops<br/>• Tablets & Konsolen"]
+                SSID_IOT["<b>SSID: IoT_Home (2.4 GHz)</b><br/>• Smarthome, Saugroboter<br/>• <i>AP-Isolation: Isoliert</i>"]
             end
         end
     end
