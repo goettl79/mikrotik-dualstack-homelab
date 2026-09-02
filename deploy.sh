@@ -4,7 +4,14 @@
 # ==============================================================================
 set -euo pipefail
 
-TARGET_IP="${1:-192.168.88.1}"
+# Auto-detect target IP: if not explicitly specified, check if already provisioned (192.168.10.1) or factory reset (192.168.88.1)
+if [[ -n "${1:-}" ]]; then
+    TARGET_IP="$1"
+elif ping -c 1 -W 1 192.168.10.1 >/dev/null 2>&1; then
+    TARGET_IP="192.168.10.1"
+else
+    TARGET_IP="192.168.88.1"
+fi
 ROUTER_USER="${2:-admin}"
 SSH_PORT="${3:-22}"
 ROUTER_PASS="${4:-${ROUTER_PASSWORD:-}}"

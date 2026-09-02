@@ -222,6 +222,7 @@
 /ip firewall filter add chain=input action=drop comment="Input: Alles andere verwerfen (Default Drop)"
 
 # --- Forward Chain ---
+/ip firewall filter add chain=forward connection-state=established,related action=fasttrack-connection comment="Forward: FastTrack fuer etablierte Verbindungen (HW-Beschleunigung)"
 /ip firewall filter add chain=forward connection-state=established,related action=accept comment="Forward: Etablierte Verbindungen erlauben"
 /ip firewall filter add chain=forward connection-state=invalid action=drop comment="Forward: Invalide Pakete verwerfen"
 

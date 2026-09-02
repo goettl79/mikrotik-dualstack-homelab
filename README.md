@@ -325,6 +325,10 @@ flowchart TD
 * **MediaTek MT7621 Switch-Chip (Hardware Offloading `hw=yes`):**
   * Der Datenverkehr zwischen **Kabel-Hauptnetz (`ether5`)**, **WLAN Access Point (`ether4`)** und **QNAP NAS Port 1 (`ether3`)** wird direkt in Hardware auf dem Switch-Chip des MikroTik hEX verarbeitet.
   * **Zero CPU-Overhead:** Große Dateitransfers (SMB/NFS, TimeMachine Backups, Videostreaming) belasten den Router-Prozessor nicht und laufen mit voller Gigabit-Drahtgeschwindigkeit (115–120 MB/s).
+* **FastTrack Hardware-Beschleunigung (IPv4 Forward):**
+  * Etablierte IPv4-Verbindungen ins Internet werden über FastTrack beschleunigt, was die CPU-Last des Dual-Core-Prozessors bei vollen 1 GBit/s FTTH-Downloads auf unter 15% minimiert.
+* **Präzise Zeitsynchronisation (SNTP & Europe/Vienna):**
+  * Der integrierte SNTP-Client synchronisiert Systemzeit und Datum nach jedem Neustart automatisch mit `pool.ntp.org` (Zeitzone `Europe/Vienna`).
 * **Wi-Fi 6E Tri-Band Durchsatz:**
   * Laptops und Smartphones auf `SSID: Family` nutzen 5 GHz und 6 GHz Kanäle für maximale WLAN-Datenraten direkt zum NAS.
 * **Server-Zone Isolation:** 
@@ -456,6 +460,7 @@ Falls der Router nicht mehr erreichbar ist oder die Konfiguration zurückgesetzt
 | **DNS & Cache** | Upstream-Server & Cache-RAM | `/ip dns print` | Telematica `dynamic-servers` & Cache-Größe |
 | **Jugendschutz** | Aktive geschützte KIDS-Geräte | `/ip firewall address-list print where list="KIDS-DEVICES"` | Registrierte Kinder-Laptops & Tablets |
 | **System** | CPU-Last & Systemressourcen | `/system resource print` | CPU-Auslastung (<5% bei L2 Line-Rate) |
+| **System & Zeit** | NTP-Synchronisation & Uhrzeit | `/system clock print` | Status & Zeitstempel (Europe/Vienna) |
 | **System** | Live-Systemprotokoll | `/log print follow-only` | Echtzeit-Logs für DHCP, Login & Security-Events |
 
 </div>
