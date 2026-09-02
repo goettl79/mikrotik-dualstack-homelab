@@ -82,18 +82,6 @@
     li {
       margin-bottom: 0.15em;
     }
-    .mermaid {
-      display: flex;
-      justify-content: center;
-      margin: 0.3em 0 0.6em 0;
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-    .mermaid svg {
-      max-width: 100% !important;
-      height: auto !important;
-      max-height: 15cm !important;
-    }
     .page-break {
       page-break-before: always;
       break-before: page;
@@ -121,62 +109,55 @@ Automatisierte Bereitstellung und gehärtete Konfiguration für MikroTik hEX Rou
 <div class="no-break">
 
 ```mermaid
-flowchart TD
-    %% 1. INTERNET UPLINK
-    subgraph INTERNET_ZONE ["1. INTERNET UPLINK (A1 / Telematica)"]
-        ONT["🌐 ONT Modem / Glasfaserabschluss<br/><b>VLAN 31 Tagged</b> (Dual-Stack DHCPv4 & DHCPv6-PD /64)"]
+flowchart LR
+    %% 1. INTERNET
+    subgraph INTERNET_ZONE ["1. Internet Uplink"]
+        ONT["A1 / Telematica ONT<br/>(VLAN 31 Tagged)"]
     end
 
-    %% 2. ROUTER ARCHITEKTUR
-    subgraph ROUTER ["2. MIKROTIK hEX (RouterOS v7) • Gateway & Switch Engine"]
+    %% 2. ROUTER
+    subgraph ROUTER ["2. MikroTik hEX (RouterOS v7)"]
         direction TB
-        E1["<b>ether1: Uplink</b><br/>vlan31-internet"]
+        E1["ether1: vlan31-internet (DHCPv4 / IPv6-PD)"]
+        E2["ether2: Server-Zone (192.168.20.1/24 + IPv6)"]
+        E3["ether3: Heimnetz (QNAP Port 1 SMB)"]
+        E4["ether4: Heimnetz (Archer AXE75 AP)"]
+        E5["ether5: Kabel-Hauptnetz (Cat6a Switch)"]
+    end
+
+    %% 3. SERVER-ZONE
+    subgraph SERVER_ZONE ["3. Server-Zone (192.168.20.0/24 + IPv6)"]
+        direction TB
+        K3D["QNAP Port 2: Server-Zone<br/>• k3d Kubernetes & Pods (10.42.0.0/16)<br/>• Luanti-Gameserver & Traefik (80/443)"]
+    end
+
+    %% 4. HEIMNETZ
+    subgraph HEIMNETZ_ZONE ["4. Heimnetz (bridge-heimnetz: 192.168.10.0/24 + IPv6)"]
+        direction TB
+        NAS1["QNAP Port 1: Private Dienste<br/>• SMB, Foto-Backups, Cloud-Sync<br/>• 1 GBit/s Line-Rate (0% CPU)"]
+        SWITCH["Kabel-Hauptnetz (Cat6a)<br/>• Raumdosen in allen Zimmern"]
         
-        subgraph ROUTER_SWITCH ["L2 Wire-Speed Hardware Switching (MediaTek MT7621 Switch-Chip)"]
-            direction LR
-            E2["<b>ether2 (DMZ)</b><br/>Server-Zone<br/>192.168.20.1/24"]
-            
-            subgraph BRIDGE ["<b>bridge-heimnetz</b> (L2 HW-Offload • 1 GBit/s • 0% CPU)<br/>192.168.10.1/24 • IPv6 SLAAC"]
-                direction LR
-                E3["<b>ether3</b><br/>QNAP Port 1"]
-                E4["<b>ether4</b><br/>AXE75 AP"]
-                E5["<b>ether5</b><br/>Cat6a Switch"]
-            end
+        subgraph AP_ZONE ["TP-Link Archer AXE75 (Wi-Fi 6E AP)"]
+            direction TB
+            SSID_FAM["SSID: Family (2.4/5/6 GHz)<br/>• Eltern, Kinder-Handys, Sonos"]
+            SSID_KIDS["SSID: Kids (2.4/5 GHz)<br/>• Schul- & eigene Laptops"]
+            SSID_IOT["SSID: IoT_Home (2.4 GHz)<br/>• Smart Home (AP-Isoliert)"]
         end
     end
 
-    %% 3. ENDGERÄTE & ZONEN
-    subgraph SERVER_ZONE ["3. SERVER-ZONE (192.168.20.0/24)"]
-        direction TB
-        K3D["<b>QNAP Port 2: k3d Cluster (DMZ)</b><br/>• Traefik Ingress (80/443)<br/>• Luanti-Gameserver<br/>• Pod-Netz (10.42.0.0/16)"]
-    end
-
-    subgraph HEIMNETZ_ZONE ["4. HEIMNETZ (192.168.10.0/24)"]
-        direction TB
-        NAS1["<b>QNAP Port 1: Private Dienste</b><br/>• SMB Speicher & QTS Verwaltung<br/>• Lokale Backups (115–120 MB/s)"]
-        SWITCH["<b>Kabel-Hauptnetz (Cat6a)</b><br/>• Zentraler Gigabit-Switch<br/>• Raumdosen im ganzen Haus"]
-        AP["<b>TP-Link Archer AXE75 (Wi-Fi 6E AP)</b><br/>• <b>SSID Family:</b> Eltern, Laptops, Sonos, Handys<br/>• <b>SSID Kids:</b> Schul-Laptops & Tablets<br/>• <b>SSID IoT_Home:</b> Smart Home (AP-Isolation)"]
-    end
-
-    %% Physische Verbindungen
+    %% Verbindungen
     ONT ===>|"FTTH Dual-Stack"| E1
-    E2 ===>|"Dedizierter Uplink"| K3D
-    E3 ===>|"1 GBit/s Line-Rate"| NAS1
-    E4 ===>|"Gigabit Uplink"| AP
-    E5 ===>|"Gigabit Trunk"| SWITCH
+    E2 ===>|"Isoliert (Firewall DROP)"| K3D
+    E3 ===>|"L2 HW-Offload (1 GBit/s)"| NAS1
+    E4 ===>|"Gigabit Uplink"| AP_ZONE
+    E5 ===>|"Gigabit Uplink"| SWITCH
 
-    %% Firewall Flow
-    SERVER_ZONE -.->|"❌ DROP (Kritische Isolation)"| HEIMNETZ_ZONE
-    HEIMNETZ_ZONE ==>|"✅ ALLOW (kubectl / Lens / Dev)"| SERVER_ZONE
-
-    %% Styling für Print & Screen
-    style INTERNET_ZONE fill:#f4f9fd,stroke:#1565c0,stroke-width:1.5px
-    style ROUTER fill:#f7f9fa,stroke:#37474f,stroke-width:1.5px
-    style ROUTER_SWITCH fill:#ffffff,stroke:#78909c,stroke-width:1px
-    style BRIDGE fill:#eef7ee,stroke:#2e7d32,stroke-width:1.5px
-    style SERVER_ZONE fill:#fff8f0,stroke:#d84315,stroke-width:1.5px
-    style HEIMNETZ_ZONE fill:#f3fbf4,stroke:#2e7d32,stroke-width:1.5px
-    style AP fill:#faf5fc,stroke:#6a1b9a,stroke-width:1.5px
+    %% Farb-Styling
+    style INTERNET_ZONE fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style ROUTER fill:#eceff1,stroke:#37474f,stroke-width:2px
+    style SERVER_ZONE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style HEIMNETZ_ZONE fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style AP_ZONE fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
 ```
 
 </div>
