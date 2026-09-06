@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Ensure local decrypted working files are always present and up-to-date after commit
+if [[ -f "${REPO_ROOT}/bin/decrypt.sh" ]]; then
+    # Only decrypt if files are missing or out of date
+    if [[ ! -f "${REPO_ROOT}/inventory.yaml" || ! -f "${REPO_ROOT}/setup.local.rsc" ]]; then
+        "${REPO_ROOT}/bin/decrypt.sh" > /dev/null 2>&1 || true
+    fi
+fi

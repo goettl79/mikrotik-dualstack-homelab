@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# Automatically decrypt updated secrets after git pull
+if [[ -f "${REPO_ROOT}/bin/decrypt.sh" ]]; then
+    echo "[post-merge] Pull completed. Updating local decrypted files..."
+    "${REPO_ROOT}/bin/decrypt.sh"
+fi

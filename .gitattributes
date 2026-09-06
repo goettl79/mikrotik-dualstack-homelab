@@ -1,0 +1,3 @@
+# Configure SOPS diff helpers so git diff shows plaintext changes
+*.enc.yaml diff=sops
+*.enc.rsc diff=sops-binary

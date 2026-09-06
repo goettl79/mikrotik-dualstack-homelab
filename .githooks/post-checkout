@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# $3 is 1 for branch checkout, 0 for file checkout
+IS_BRANCH_CHECKOUT="${3:-1}"
+
+if [[ "$IS_BRANCH_CHECKOUT" -eq 1 && -f "${REPO_ROOT}/bin/decrypt.sh" ]]; then
+    echo "[post-checkout] Switched branch. Syncing local decrypted files..."
+    "${REPO_ROOT}/bin/decrypt.sh"
+fi

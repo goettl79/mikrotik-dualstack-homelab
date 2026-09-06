@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+if [[ -f "${REPO_ROOT}/bin/decrypt.sh" ]]; then
+    "${REPO_ROOT}/bin/decrypt.sh" > /dev/null 2>&1 || true
+fi
