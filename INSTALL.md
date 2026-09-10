@@ -80,7 +80,7 @@ ssh admin@192.168.10.1 "/user ssh-keys import public-key-file=id_rsa.pub user=ad
 # IPv6 DHCP-PD Status (Prefix Delegation /64 bezogen)
 /ipv6 dhcp-client print detail
 
-# IP-Adressen auf Heimnetz-Bridge und Server-Zone
+# IP-Adressen auf Heimnetz-Bridge und Server-Zone (IPv6 SLAAC auf Heimnetz priorisiert)
 /ip address print
 /ipv6 address print
 ```
@@ -93,9 +93,9 @@ ssh admin@192.168.10.1 "/user ssh-keys import public-key-file=id_rsa.pub user=ad
 1. **Admin-GUI aufrufen:** Erreichbar unter **http://192.168.10.2** (feste DHCP-Reservierung im MikroTik).
 2. **Betriebsmodus:** In der TP-Link Web-GUI auf **Access Point (AP-Modus)** umstellen.
 3. **SSIDs einrichten:**
-   * **`Family`** (2.4 / 5 / 6 GHz, Smart Connect, WPA2/WPA3): Eltern, Arbeitsrechner, Sonos.
+   * **`Family`** (2.4 / 5 / 6 GHz, Smart Connect, WPA2/WPA3): Eltern, Arbeitsrechner, **Chromecast mit Google TV**, Sonos.
    * **`Kids`** (2.4 / 5 GHz, separates Passwort): Schul- & Kinder-Laptops, Tablets.
-   * **`IoT_Home`** (2.4 GHz, WPA2): Smart Home. **„Access Local Network“ / „AP-Isolation“ AKTIVIEREN**.
+   * **`IoT_Home`** (2.4 GHz, WPA2): Smart Home (**Roborock Saugroboter**, **Gardena Mower**, **Portasplit Klimaanlage**). **„Access Local Network“ / „AP-Isolation“ AKTIVIEREN**.
 
 ### B. QNAP NAS (QTS Betriebssystem)
 1. **Port 1 (Adapter 1 - Heimnetz):** Auf DHCP stellen → Erhält IP `192.168.10.x`.

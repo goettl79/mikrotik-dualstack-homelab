@@ -20,8 +20,8 @@ flowchart TD
         
         subgraph ROUTING ["Sicherheitszonen & Interfaces"]
             direction LR
-            BR["<b>bridge-heimnetz (ether3 - ether5)</b><br/>Dual-Stack Gateway & SLAAC<br/><i>L2 HW-Offload (MediaTek MT7621)</i>"]
-            E2["<b>ether2: Server-Zone (DMZ)</b><br/>Isolierte Zone & SLAAC<br/><i>Firewall-isoliert (DROP zu Heimnetz)</i>"]
+            BR["<b>bridge-heimnetz (ether3 - ether5)</b><br/>Dual-Stack Gateway & SLAAC (/64)<br/><i>L2 HW-Offload (MediaTek MT7621)</i>"]
+            E2["<b>ether2: Server-Zone (DMZ)</b><br/>Isolierte Zone (IPv4 NAT)<br/><i>Firewall-isoliert (DROP zu Heimnetz)</i>"]
         end
         E1 -.->|"FastPath"| BR
         E1 -.->|"Routing & NAT"| E2
@@ -35,7 +35,7 @@ flowchart TD
         subgraph HEIM_DEVICES ["Private Endgeräte & Netz-Infrastruktur"]
             direction LR
             NAS1["<b>ether3: QNAP Port 1</b><br/>• Private SMB Netzlaufwerke<br/>• Foto-Backups & TimeMachine<br/>• QTS Web-Administration<br/><i>1 GBit/s Line-Rate (0% CPU)</i>"]
-            AP["<b>ether4: Archer AXE75 (AP)</b><br/>• <b>Family:</b> 2.4/5/6 GHz (Mobil, Sonos)<br/>• <b>Kids:</b> 2.4/5 GHz (Schul-Laptops)<br/>• <b>IoT_Home:</b> 2.4 GHz (AP-Isoliert)<br/><i>Wi-Fi 6E Tri-Band Access Point</i>"]
+            AP["<b>ether4: Archer AXE75 (AP)</b><br/>• <b>Family:</b> 2.4/5/6 GHz (Mobil, Chromecast, Sonos)<br/>• <b>Kids:</b> 2.4/5 GHz (Schul-Laptops)<br/>• <b>IoT_Home:</b> 2.4 GHz (Saugroboter, Mower, AC)<br/><i>Wi-Fi 6E Tri-Band Access Point</i>"]
             SWITCH["<b>ether5: Gigabit-Switch</b><br/>• Cat6a Raumverkabelung<br/>• Wanddosen in allen Zimmern<br/>• Arbeitsplatz-PCs & Drucker<br/><i>Gigabit Wire-Speed</i>"]
         end
     end
@@ -61,7 +61,7 @@ flowchart TD
 |:---|:---|:---|:---|:---|
 | **`INTERNET`** | `vlan31-internet` (ether1) | DHCP-Client *(Default Gateway)* | DHCPv6-PD (`/64`, Pool: `ipv6-pd`) | FTTH Uplink zu A1 / Telematica ONT (VLAN 31) |
 | **`SERVER-ZONE`** | `ether2` | `192.168.20.1/24` *(Pool: .100–.200)* | IPv4 NAT *(SLAAC nur bei ISP >/64 PD)* | **QNAP Port 2:** k3d Kubernetes, Luanti-Gameserver & Traefik |
-| **`HEIMNETZ`** | `bridge-heimnetz` (ether3–5) | `192.168.10.1/24` *(Pool: .100–.200)* | SLAAC (`advertise=yes`) | **QNAP Port 1** (SMB), **Archer AXE75** (AP), **Cat6a Switch** |
+| **`HEIMNETZ`** | `bridge-heimnetz` (ether3–5) | `192.168.10.1/24` *(Pool: .100–.200)* | SLAAC (`advertise=yes`, Priorität) | **QNAP Port 1** (SMB), **Archer AXE75** (AP), **Cat6a Switch** |
 
 ### Port-Belegung im `HEIMNETZ` (ether3, ether4, ether5)
 * **`ether3`:** QNAP NAS Port 1 → Interne Netzlaufwerke (SMB), automatische Foto-Backups, Cloud-Synchronisation und QTS Web-Administration.
@@ -72,9 +72,20 @@ flowchart TD
 
 | Netzwerk-Typ | SSID | Frequenz & Standard | Zielgruppe & Geräte | Zugriff auf QNAP Port 1 | Zugriff auf k3d Cluster |
 |:---|:---|:---|:---|:---:|:---:|
-| **Haupt-WLAN (Main)** | `Family` | 2,4 / 5 / 6 GHz (Wi-Fi 6E, WPA2/WPA3) | Eltern, Arbeitsrechner, Laptops, **Kinder-Handys**, **Sonos-Lautsprecher** | **✅ JA (SMB / QTS)** | **✅ JA (kubectl / Dev)** |
+| **Haupt-WLAN (Main)** | `Family` | 2,4 / 5 / 6 GHz (Wi-Fi 6E, WPA2/WPA3) | Eltern, Arbeitsrechner, Laptops, **Chromecast mit Google TV**, **Kinder-Handys**, **Sonos-Lautsprecher** | **✅ JA (SMB / QTS)** | **✅ JA (kubectl / Dev)** |
 | **Kindernetz (WLAN)** | `Kids` | 2,4 / 5 GHz (Cloudflare Family DNS, sep. PW) | **Schul- & Kinder-Laptops:** Laptops der Kinder, Tablets, Streaming *(Jugendschutz aktiv)* | **✅ JA (SMB / Stream)** | **✅ JA (Web / Games)** |
-| **IoT-Netzwerk** | `IoT_Home` | 2,4 GHz *(WPA2-only, AP-Isolation)* | **Smart Home:** Saugroboter, Portasplit, isolierte IoT-Aktoren | **⛔ NEIN (Geblockt)** | **⛔ NEIN (Geblockt)** |
+| **IoT-Netzwerk** | `IoT_Home` | 2,4 GHz *(WPA2-only, AP-Isolation)* | **Smart Home (IoT):** Roborock Saugroboter, Gardena Smart Mower, Midea Portasplit Klimaanlage | **⛔ NEIN (Geblockt)** | **⛔ NEIN (Geblockt)** |
+
+### IPv6 Dual-Stack & SLAAC-Priorisierung
+* **Einzige /64 Prefix Delegation:** Weist der Internet-Provider (A1/Telematica) ein einzelnes `/64`-Präfix zu, kann dieses standardkonform nur an **ein** Layer-2-Netzwerk delegiert werden (SLAAC erfordert zwingend `/64`).
+* **Priorisierung Heimnetz:** Um Streaming-Probleme (z. B. auf Android TV / Chromecast mit werbefinanzierten AVOD-Diensten wie *Joyn* und *Toggo*) zu vermeiden, ist das `/64`-Präfix strikt auf `bridge-heimnetz` gelegt.
+* **Server-Zone:** Die k3d Server-Zone (`ether2`) wird stabil über IPv4 (mit NAT Masquerade) angebunden. Sollte der Provider künftig ein größeres Präfix (`/56`) delegieren, kann `ether2` parallel ein eigenes `/64` erhalten.
+
+### Geräte-Kategorien im Inventar (`inventory.enc.yaml`)
+* **`family_devices`:** Eltern-Smartphones, Tablets, Arbeitsplatz-Workstations, Canon Drucker und Streaming-Clients (**Chromecast mit Google TV**).
+* **`kids_devices`:** Kinder-Smartphones und Laptops mit Zeitsteuerung (`kid_control`) und Jugendschutz-DNS (`KIDS-DEVICES` / Cloudflare Family).
+* **`iot_devices`:** Smart Home Komponenten mit AP-Isolation (**Roborock Saugroboter**, **Gardena Smart Mower**, **Midea Portasplit Klimaanlage**).
+* **`sonos_audio`:** Multiroom-Audiosystem im Heimnetz.
 
 ### DNS-Architektur & Namensauflösung
 
@@ -182,7 +193,7 @@ Die vollständige Schritt-für-Schritt-Anleitung zur physischen Verkabelung, Ers
 | **IPv4 Netzwerk** | IP-Adressen & Subnetze | `/ip address print` | `192.168.10.1/24` (Heimnetz), `192.168.20.1/24` (DMZ) |
 | **IPv4 Netzwerk** | DHCP-Server Leases | `/ip dhcp-server lease print` | Aktive Leases & Hostnames im Heimnetz/DMZ |
 | **IPv6 Dual-Stack**| DHCPv6 Prefix Delegation | `/ipv6 dhcp-client print` | Status `bound`, `/64` Präfix bezogen |
-| **IPv6 Dual-Stack**| IPv6 Adress-Pools (SLAAC) | `/ipv6 address print` | Globale IPv6 auf `bridge-heimnetz` und `ether2` |
+| **IPv6 Dual-Stack**| IPv6 Adress-Pools (SLAAC) | `/ipv6 address print` | Globale IPv6 auf `bridge-heimnetz` (SLAAC-Priorität) |
 | **Firewall** | Filter-Regeln & Drop-Counter | `/ip firewall filter print stats` | Prüfen der Paketzähler für DROP-Regeln |
 | **Firewall** | Aktive Verbindungen (Conntrack) | `/ip firewall connection print` | Aktuelle TCP/UDP Session-Tabelle |
 | **DNS & Cache** | Upstream-Server & Cache-RAM | `/ip dns print` | Telematica `dynamic-servers` & Cache-Größe |
