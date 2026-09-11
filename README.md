@@ -168,19 +168,31 @@ Die vollständige Schritt-für-Schritt-Anleitung zur physischen Verkabelung, Ers
 
 ## 6. Checkliste für den laufenden Betrieb & Wartung
 
-### Regelmäßige Wartung (Monatlich / Quartalsweise)
-- [ ] **1. RouterOS Konfigurations-Backup erstellen:**
-  ```routeros
-  /export file=backup-config
-  /system backup save name=backup-system
-  ```
-- [ ] **2. RouterOS Firmware-Updates prüfen (Stable Channel):**
-  ```routeros
-  /system package update check-for-updates
-  /system package update download-and-install
-  /system routerboard upgrade
-  ```
-- [ ] **3. QNAP & Container-Updates:** Regelmäßige Updates von QTS und den Kubernetes Pods in der Server-Zone durchführen.
+### Regelmäßige Wartung & Sicheres Router-Update
+
+Für den MikroTik hEX (RB750Gr3) steht ein vollautomatisiertes, sicheres Update-Skript bereit:
+
+```bash
+# 1. Update-Status prüfen (Read-Only, keine Änderungen):
+./bin/update-router.sh --check
+
+# 2. Lokales Pre-Upgrade-Backup erstellen (ohne Update):
+./bin/update-router.sh --backup-only
+
+# 3. Sicheres RouterOS & Bootloader Firmware-Update durchführen:
+./bin/update-router.sh
+```
+
+#### Sicherheitsmechanismen des Update-Prozesses:
+1. **Pre-Flight Speicherprüfung:** Erkennt knappen Flash-Speicher (<4 MB) vor dem Download.
+2. **Automatisches lokales Backup:** Sichert Binär-Backup (`.backup`) und kompakten Text-Export (`.rsc`) auf den lokalen Rechner (`./backups/`).
+3. **Flash-Speicherbereinigung:** Löscht Backups nach dem Download vom 16MB-Flash des Routers, um Speicherplatz für die `.npk`-Pakete freizugeben.
+4. **Zweistufiger Update-Prozess:**
+   - **Stufe 1:** RouterOS Software-Pakete (`/system package update install`) inkl. automatischer Reboot-Überwachung.
+   - **Stufe 2:** RouterBOOT Bootloader-Firmware (`/system routerboard upgrade`) inkl. Firmware-Reboot.
+5. **Post-Upgrade Health-Check:** Automatische Verifikation von WAN-Uplink, Internet-Ping, DNS und DHCP-Servern.
+
+- [ ] **QNAP & Container-Updates:** Regelmäßige Updates von QTS und den Kubernetes Pods in der Server-Zone durchführen.
 
 ---
 

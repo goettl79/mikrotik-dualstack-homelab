@@ -21,6 +21,7 @@ setup.rsc
 *.rsc.bak
 *.tmp
 *~
+backups/
 
 # OS & Editor artifacts
 .DS_Store
@@ -42,4 +43,6 @@ bin/*
 !bin/decrypt.sh
 !bin/commit.sh
 !bin/setup-git.sh
+!bin/update-router.sh
+
 
