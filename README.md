@@ -98,6 +98,7 @@ flowchart TD
 
 * **KIDS Jugendschutz-Enforcement:** Geräte der Adressliste `KIDS-DEVICES` erhalten per DHCP Option 6 direkt Cloudflare Family DNS. Port 53 (DNS) wird per Firewall-NAT zwingend umgeleitet (Manipulationsschutz), und DoT (Port 853) wird gesperrt.
 * **Server-Zone Entkopplung:** Pods & Container in der `SERVER-ZONE` (`192.168.20.0/24`) erhalten per DHCP direkt externe DNS-Server (`1.1.1.1`, `8.8.8.8`), um den Router-Cache vor Lastspitzen durch Container-Image-Pulls zu schützen.
+* **Split-Brain DNS für Ingress (`oettl.home.work`):** Der MikroTik RAM-Cache löst `oettl.home.work` (inkl. aller Subdomains via `match-subdomain=yes`) für Heimnetz-Clients direkt auf `192.168.20.10` (k3d Traefik) auf. Interne Aufrufe laufen somit latenzfrei mit voller Gigabit-Line-Rate ohne Hairpin-NAT-Overhead.
 
 ---
 
@@ -114,7 +115,7 @@ flowchart TD
 | **`KIDS-DEVICES`** | **`INTERNET` (DoT Port 853)** | **🔴 GEBLOCKT** | TCP 853 | **DoT-Sperre:** Verhindert Umgehung des Filters via Android/iOS Private DNS |
 | **`IoT_Home` (Smart Home)** | **`HEIMNETZ` & QNAP Port 1** | **🔴 GEBLOCKT** | Alle Protokolle & Ports | AP-Isolation auf dem Archer AXE75 (*Access Local Network: Disabled*) |
 | **`INTERNET`** | **`HEIMNETZ` (Privat)** | **🔴 GEBLOCKT** | Alle eingehenden Anfragen | MikroTik Default Drop: Kein NAT / Routing auf private LAN-Clients |
-| **`INTERNET`** | **`SERVER-ZONE` (k3d Ingress)** | **🟡 80/443** | Nur TCP 80 (HTTP) & TCP 443 (HTTPS) | Optionales Port-Forwarding (`dstnat`) exklusiv für Traefik Web-Ingress |
+| **`INTERNET`** | **`SERVER-ZONE` (k3d Ingress)** | **🟢 80/443** | Nur TCP 80 (HTTP) & TCP 443 (HTTPS) | Port-Forwarding (`dstnat`) exklusiv für Traefik Web-Ingress (`192.168.20.10`) |
 
 ---
 
