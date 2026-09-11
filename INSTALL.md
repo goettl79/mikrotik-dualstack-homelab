@@ -10,9 +10,9 @@ Schritt-für-Schritt Anleitung zur physischen Verkabelung, Erstinbetriebnahme, a
 2. [Phase 2: RouterOS Provisioning & Deployment](#phase-2-routeros-provisioning--deployment)
 3. [Phase 3: Konfiguration der Endgeräte](#phase-3-konfiguration-der-endgeräte)
 4. [Phase 4: Sicherheits- & Funktionstests (Smoke Tests)](#phase-4-sicherheits---funktionstests-smoke-tests)
-5. [Secret Management & SOPS-Verschlüsselung](#secret-management--sops-verschlüsselung)
-6. [Notfall & Factory Reset](#notfall--factory-reset)
-
+5. [Betrieb & Wartung](#betrieb--wartung)
+6. [Secret Management & SOPS-Verschlüsselung](#secret-management--sops-verschlüsselung)
+7. [Notfall & Factory Reset](#notfall--factory-reset)
 
 ---
 
@@ -93,13 +93,19 @@ ssh admin@192.168.10.1 "/user ssh-keys import public-key-file=id_rsa.pub user=ad
 1. **Admin-GUI aufrufen:** Erreichbar unter **http://192.168.10.2** (feste DHCP-Reservierung im MikroTik).
 2. **Betriebsmodus:** In der TP-Link Web-GUI auf **Access Point (AP-Modus)** umstellen.
 3. **SSIDs einrichten:**
-   * **`Family`** (2.4 / 5 / 6 GHz, Smart Connect, WPA2/WPA3): Eltern, Arbeitsrechner, **Chromecast mit Google TV**, Sonos.
-   * **`Kids`** (2.4 / 5 GHz, separates Passwort): Schul- & Kinder-Laptops, Tablets.
-   * **`IoT_Home`** (2.4 GHz, WPA2): Smart Home (**Roborock Saugroboter**, **Gardena Mower**, **Portasplit Klimaanlage**). **„Access Local Network“ / „AP-Isolation“ AKTIVIEREN**.
+   * **`Family`** (2.4 / 5 / 6 GHz, Smart Connect, WPA2/WPA3): Alle Familien-Geräte inkl. Kinder-Smartphones, Chromecast, Sonos.
+   * **`IoT_Home`** (2.4 GHz, WPA2): Smart Home (**Roborock Saugroboter**, **Gardena Mower**, **Portasplit Klimaanlage**). **„Access Local Network" / „AP-Isolation" AKTIVIEREN**.
+
+#### WLAN SSIDs Übersicht
+
+| SSID | Frequenz | Zielgruppe | NAS-Zugriff | k3d-Zugriff |
+|:-----|:---------|:-----------|:---:|:---:|
+| `Family` | 2.4 / 5 / 6 GHz (Wi-Fi 6E) | Alle Familien-Geräte inkl. Kinder (Jugendschutz MAC-basiert) | ✅ | ✅ |
+| `IoT_Home` | 2.4 GHz (AP-Isolation) | Saugroboter, Mower, Klimaanlage | ⛔ | ⛔ |
 
 ### B. QNAP NAS (QTS Betriebssystem)
-1. **Port 1 (Adapter 1 - Heimnetz):** Auf DHCP stellen → Erhält IP `192.168.10.x`.
-2. **Port 2 (Adapter 2 - Server-Zone):** Auf DHCP stellen → Erhält IP `192.168.20.x`.
+1. **Port 1 (Adapter 1 - Heimnetz):** Auf DHCP stellen → Erhält IP `192.168.10.10`.
+2. **Port 2 (Adapter 2 - Server-Zone):** Auf DHCP stellen → Erhält IP `192.168.20.10`.
 3. **Dienstebindung:** QTS Web-GUI & SMB-Dateifreigaben nur an Adapter 1 binden; k3d Container-Cluster an Adapter 2 binden.
 
 ### C. Sonos Multiroom-Lautsprecher
@@ -107,7 +113,7 @@ ssh admin@192.168.10.1 "/user ssh-keys import public-key-file=id_rsa.pub user=ad
 
 ### D. Kinder-Endgeräte (KIDS-WLAN & Jugendschutz)
 1. **WLAN:** Kinder-Laptops, Tablets und Handys mit der SSID **`Kids`** verbinden.
-2. **MAC-Randomisierung deaktivieren:** In den WLAN-Einstellungen des Geräts **„Private WLAN-Adresse“ auf „Aus“** (Telefon-/Geräte-MAC) stellen.
+2. **MAC-Randomisierung deaktivieren:** In den WLAN-Einstellungen des Geräts **„Private WLAN-Adresse" auf „Aus"** (Telefon-/Geräte-MAC) stellen.
 3. **Im MikroTik registrieren:**
    ```routeros
    # Gerät als statischen Lease mit Cloudflare Family DNS & Adressliste KIDS-DEVICES festlegen:
@@ -124,10 +130,106 @@ Führe nach Abschluss folgende Tests durch:
 | Test | Durchführung / Befehl | Erwartetes Ergebnis |
 | :--- | :--- | :--- |
 | **Internetzugang IPv4 & IPv6** | `ping 1.1.1.1` & `ping6 google.com` | Erfolgreich (<20 ms Latenz) |
-| **High-Speed NAS-Zugriff** | Große Datei auf SMB `\\192.168.10.x` kopieren | ~113–115 MB/s (Gigabit Line-Rate) |
+| **High-Speed NAS-Zugriff** | Große Datei auf SMB `\\192.168.10.10` kopieren | ~113–115 MB/s (Gigabit Line-Rate) |
 | **k3d Management** | `kubectl get nodes` aus dem Heimnetz | Cluster antwortet über Port 6443 |
 | **DMZ-Isolation (CRITICAL)** | Aus Container / Port 2: `ping 192.168.10.1` | **Timeout / DROP (Firewall blockt)** |
 | **DNS-Zwang Kids-Geräte** | Am Kids-Gerät: `nslookup adult-site.com` | Wird durch Cloudflare Family blockiert |
+
+---
+
+## Betrieb & Wartung
+
+### Router-Update
+
+```bash
+# Update-Status prüfen (read-only):
+./bin/update-router.sh --check
+
+# Lokales Pre-Upgrade-Backup:
+./bin/update-router.sh --backup-only
+
+# Sicheres RouterOS & Bootloader Update:
+./bin/update-router.sh
+```
+
+**Sicherheitsmechanismen:** Pre-Flight Speicherprüfung → Automatisches Backup (.backup + .rsc) → Flash-Bereinigung → RouterOS Update + Reboot → RouterBOOT Upgrade + Reboot → Health-Check (WAN, DNS, DHCP).
+
+### Geräte-Kategorien im Inventar (`inventory.enc.yaml`)
+
+* **`family_devices`:** Eltern-Smartphones, Tablets, Workstations, Drucker, Streaming-Clients (Chromecast).
+* **`kids_devices`:** Kinder-Smartphones und Laptops mit Kid-Control Zeitsteuerung & Cloudflare Family DNS.
+* **`iot_devices`:** Smart Home (Roborock, Gardena Mower, Portasplit Klimaanlage) — AP-isoliert.
+* **`sonos_audio`:** Multiroom-Audiosystem im Heimnetz.
+
+### IPv6 Hinweise
+
+* **Einzige /64 Prefix Delegation:** A1/Telematica delegiert ein einzelnes `/64` → nur ein L2-Segment kann SLAAC nutzen.
+* **Priorisierung Heimnetz:** `/64` liegt auf `bridge-heimnetz` (Streaming-Kompatibilität für Chromecast/Android TV).
+* **Server-Zone:** Läuft stabil über IPv4 NAT. Bei ISP-Upgrade auf `/56` kann `ether2` ein eigenes `/64` erhalten.
+
+### RouterOS Cheat Sheet
+
+#### Interfaces & Bridge
+```routeros
+/interface print                               # Link-Status
+/interface bridge port print                   # HW-Offload Flags (H)
+/interface list member print                   # Sicherheitszonen
+```
+
+#### DHCP & Leases
+```routeros
+/ip dhcp-server lease print                    # Alle Leases
+/ip dhcp-server lease print detail             # Inkl. Lease-Time, Client-ID
+/ip dhcp-server lease make-static [ find mac-address="XX:XX:XX:XX:XX:XX" ]
+/ip dhcp-server lease set [ find mac-address="XX:XX:XX:XX:XX:XX" ] comment="Name"
+```
+
+#### Firewall & NAT
+```routeros
+/ip firewall filter print stats                # Paketzähler & Drop-Counter
+/ip firewall filter print stats where action=drop
+/ip firewall nat print stats                   # NAT-Statistiken
+/ip firewall connection print                  # Aktive Verbindungen
+/ip firewall address-list print where list="KIDS-DEVICES"
+```
+
+#### DNS
+```routeros
+/ip dns print                                  # Upstream-Server & Cache
+/ip dns cache print                            # Cache-Inhalt
+/ip dns cache flush                            # Cache leeren
+:put [:resolve heise.de]                       # DNS-Test
+```
+
+#### IPv6
+```routeros
+/ipv6 dhcp-client print detail                 # PD-Status
+/ipv6 address print                            # Globale Adressen
+/ipv6 firewall filter print stats              # IPv6 Firewall
+```
+
+#### Kid-Control
+```routeros
+/ip kid-control print detail                   # Profile & Status
+/ip kid-control device print detail            # Zugewiesene Geräte
+/ip kid-control pause [ find name="Antonia" ]  # Sofort-Sperre
+/ip kid-control resume [ find name="Antonia" ] # Freigabe
+```
+
+#### System & Monitoring
+```routeros
+/system resource print                         # CPU, RAM, Flash
+/system clock print                            # NTP & Zeitzone
+/log print follow                              # Live-Logs
+/log print where topics~"dhcp"                 # Nur DHCP-Events
+/interface monitor-traffic ether1,bridge-heimnetz  # Bandbreite
+```
+
+#### Backup & Export
+```routeros
+/export file=aktuelles-setup.rsc               # Text-Export
+/system backup save name=backup-full           # Binär-Backup
+```
 
 ---
 
@@ -195,4 +297,3 @@ Falls der Router fehlkonfiguriert wurde oder nicht mehr erreichbar ist:
 3. Stromkabel anschließen, während die Taste gedrückt bleibt.
 4. Sobald die `USR`-LED zu blinken beginnt (nach ca. 5–8 Sekunden), Taste **sofort loslassen**.
 5. Der Router startet mit Werkseinstellungen (`192.168.88.1`). Danach `./deploy.sh` erneut ausführen.
-
