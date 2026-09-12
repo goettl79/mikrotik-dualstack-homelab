@@ -30,9 +30,6 @@ Thumbs.db
 .idea/
 
 # Local drafts & personal notes
-LINKEDIN_POST.md
-*linkedin*
-*LINKEDIN*
 k3d*.yaml
 k3d*.yml
 *k3d*

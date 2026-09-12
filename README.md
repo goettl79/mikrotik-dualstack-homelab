@@ -183,6 +183,7 @@ Setup: `./bin/setup-git.sh`
 │   └── setup-git.sh       # Git-Hooks + Diff-Filter Setup
 ├── k3d.yaml               # k3d Cluster Config (lokal)
 ├── INSTALL.md             # Verkabelung, Endgeräte, Smoke Tests
-├── LESSONS_LEARNED.md     # Architecture Debrief & C-Level LinkedIn Post Drafts
+├── LESSONS_LEARNED.md     # Architecture Debrief & Technische Lessons Learned
+├── LINKEDIN_POST.md       # C-Level LinkedIn Post Drafts (DE & EN)
 └── gemini.md              # Agent Task Specification
 ```
