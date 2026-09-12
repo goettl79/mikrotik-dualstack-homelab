@@ -158,7 +158,8 @@ Setup: `./bin/setup-git.sh`
   * **Port 1 (`nas.lan` / 192.168.10.10):** Privates `HEIMNETZ` (SMB-Shares, QTS Web-Admin).
   * **Port 2 (`nas-k8s.lan` / 192.168.20.10):** Isolierte `SERVER-ZONE` (k3d Kubernetes Cluster, Caddy Ingress, öffentlich exponiert via Port-Forwarding).
 * **Sicherheitsrisiko:** Sollte ein Angreifer über einen exponierten Web-Container (z. B. Ingress/Backend) einen Container-Escape auf den QNAP-Host erzielen, befindet er sich auf einem Gerät, das eine direkte Netzwerkkarte im vertrauenswürdigen Heimnetz hat. Die Firewall-Isolation des MikroTik-Routers wird auf Host-Ebene umgangen.
-* **Pain Point / Trade-Off:** Ein lupenreines Zero-Trust- und DMZ-Design verlangt eine **vollständige physische Trennung**: Ein dedizierter Compute-Knoten (z. B. Mini-PC/Server) in der DMZ und ein reines Speicher-NAS im internen Storage-VLAN. Ein solcher Hardware-Umbau ist aktuell **wirtschaftlich zu teuer**.
+* **Pain Point / Trade-Off:** Ein theoretisches Zero-Trust- und DMZ-Design verlangt eine **vollständige physische Trennung**: Ein dedizierter Compute-Knoten in der DMZ und ein separates Speicher-NAS im internen Storage-Netz. Ein solcher Hardware-Umbau ist aktuell **wirtschaftlich nicht sinnvoll** und zu teuer.
+* **Architektur-Urteil:** Das Setup ist **kein Zero Trust – und das ist völlig in Ordnung**. Die pragmatische DMZ-Zonensegmentierung liefert für das aktuelle Risikoprofil 90 % der Schutzwirkung. Sollte die externe Angriffsfläche zukünftig wachsen (weitere öffentliche Dienste), ist Zero Trust über eine **„externe DMZ in der DMZ“** (z. B. vorgelagerter Identity-Aware Proxy / Micro-Enklave) der wirtschaftlich und architektonisch modulare Skalierungspfad.
 * **Aktuelle Schutzmaßnahmen (Mitigations):**
   * Strikte Dienstebindung in QTS: QTS-Management & SMB sind ausschließlich an Adapter 1 gebunden.
   * Keine Software-Brücke zwischen den Netzwerk-Adaptern im QTS.
