@@ -23,8 +23,8 @@ Verbinde die Netzwerkkabel exakt nach folgender Port-Belegung:
 | Router-Port | Ziel-Gerät / Schnittstelle | Funktion / Zone | Kabeltyp |
 | :--- | :--- | :--- | :--- |
 | **`ether1`** | **A1 / Telematica ONT** (LAN-Port) | Internet Uplink (VLAN 31) | Cat6a / Cat6 |
-| **`ether2`** | **QNAP NAS Port 2** (k3d Cluster) | Isolierte Server-Zone / DMZ (`192.168.20.0/24`) | Cat6a |
-| **`ether3`** | **QNAP NAS Port 1** (SMB / QTS) | Heimnetz-Speicher (`192.168.10.0/24`) | Cat6a |
+| **`ether2`** | **QNAP NAS Port 2** (k3d Cluster / Ingress) | Isolierte Server-Zone / DMZ (`nas-k8s.lan` / `192.168.20.10`) | Cat6a |
+| **`ether3`** | **QNAP NAS Port 1** (SMB / QTS Web-UI) | Heimnetz-Speicher (`nas.lan` / `192.168.10.10`) | Cat6a |
 | **`ether4`** | **TP-Link Archer AXE75** (WAN/LAN) | Wi-Fi 6E Tri-Band Access Point | Cat6a |
 | **`ether5`** | **Zentraler Gigabit-Switch** | Kabel-Hauptnetz (Dosen in allen Zimmern) | Cat6a |
 
@@ -104,15 +104,16 @@ ssh admin@192.168.10.1 "/user ssh-keys import public-key-file=id_rsa.pub user=ad
 | `IoT_Home` | 2.4 GHz (AP-Isolation) | Saugroboter, Mower, Klimaanlage | ⛔ | ⛔ |
 
 ### B. QNAP NAS (QTS Betriebssystem)
-1. **Port 1 (Adapter 1 - Heimnetz):** Auf DHCP stellen → Erhält IP `192.168.10.10`.
-2. **Port 2 (Adapter 2 - Server-Zone):** Auf DHCP stellen → Erhält IP `192.168.20.10`.
+1. **Port 1 (Adapter 1 - Heimnetz):** Auf DHCP stellen → Erhält feste IP `192.168.10.10` (`nas.lan`).
+2. **Port 2 (Adapter 2 - Server-Zone):** Auf DHCP stellen → Erhält feste IP `192.168.20.10` (`nas-k8s.lan`).
 3. **Dienstebindung:** QTS Web-GUI & SMB-Dateifreigaben nur an Adapter 1 binden; k3d Container-Cluster an Adapter 2 binden.
+4. **Caddy Ingress:** Läuft im Kubernetes-Cluster auf NodePorts 61200 (HTTP) und 61201 (HTTPS) und routet intern via Cluster-DNS (`prod-ui.immoad-prod:1080`, `prod-backend.immoad-prod:5000`, etc.).
 
 ### C. Sonos Multiroom-Lautsprecher
 * Alle Sonos-Lautsprecher mit dem WLAN **`Family`** verbinden (oder per Cat6a LAN-Kabel an den Switch anschließen).
 
-### D. Kinder-Endgeräte (KIDS-WLAN & Jugendschutz)
-1. **WLAN:** Kinder-Laptops, Tablets und Handys mit der SSID **`Kids`** verbinden.
+### D. Kinder-Endgeräte (Jugendschutz & Kid-Control)
+1. **WLAN:** Kinder-Laptops, Tablets und Handys verbinden sich mit der normalen SSID **`Family`** (die separate SSID `Kids` wurde zugunsten eines einheitlichen WLAN-Meshs konsolidiert).
 2. **MAC-Randomisierung deaktivieren:** In den WLAN-Einstellungen des Geräts **„Private WLAN-Adresse" auf „Aus"** (Telefon-/Geräte-MAC) stellen.
 3. **Im MikroTik registrieren:**
    ```routeros
@@ -130,8 +131,11 @@ Führe nach Abschluss folgende Tests durch:
 | Test | Durchführung / Befehl | Erwartetes Ergebnis |
 | :--- | :--- | :--- |
 | **Internetzugang IPv4 & IPv6** | `ping 1.1.1.1` & `ping6 google.com` | Erfolgreich (<20 ms Latenz) |
-| **High-Speed NAS-Zugriff** | Große Datei auf SMB `\\192.168.10.10` kopieren | ~113–115 MB/s (Gigabit Line-Rate) |
-| **k3d Management** | `kubectl get nodes` aus dem Heimnetz | Cluster antwortet über Port 6443 |
+| **DNS-Auflösung NAS Port 1 & 2** | `getent hosts nas.lan` & `getent hosts nas-k8s.lan` | `.10.10` bzw. `.20.10` |
+| **High-Speed NAS-Zugriff** | Große Datei auf SMB `\\nas.lan` kopieren | ~113–115 MB/s (Gigabit Line-Rate) |
+| **k3d Management** | `kubectl get nodes` aus dem Heimnetz | Node `qnap-k3s` antwortet über Port 6443 |
+| **Caddy Ingress & Hairpin-NAT** | `curl -k -I https://home.oettl.work` | HTTP/2 200 OK |
+| **Backend API Health Check** | `curl -k -i https://api.oettl.work/api/v1/healthz` | HTTP/2 200 OK (`healthy`) |
 | **DMZ-Isolation (CRITICAL)** | Aus Container / Port 2: `ping 192.168.10.1` | **Timeout / DROP (Firewall blockt)** |
 | **DNS-Zwang Kids-Geräte** | Am Kids-Gerät: `nslookup adult-site.com` | Wird durch Cloudflare Family blockiert |
 
