@@ -1,0 +1,30 @@
+# Operational files & configurations (managed in private ops repository)
+*.rsc
+*.yaml
+*.yml
+*.enc.*
+*.sh
+*.backup
+*.bak
+*.key
+*.pem
+id_rsa*
+id_ed25519*
+.sops.yaml
+bin/
+backups/
+.githooks/
+
+# Environment & sensitive files
+.env
+*.env
+*.local
+*.local.*
+
+# OS & Editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.tmp
+*~
