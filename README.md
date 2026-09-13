@@ -105,6 +105,14 @@ Vierschichtiger Bypass-Schutz für Kids-Geräte (`KIDS-DEVICES` Adressliste auf 
 
 Zeitsteuerung: 06:00–24:00 Uhr aktiv, 00:00–06:00 gesperrt.
 
+### WLAN- & IoT-Segmentierung (TP-Link Archer AXE75)
+
+* **Access Point Modus:** Der TP-Link Archer AXE75 ist über `ether4` im Bridge-Heimnetzwerk angebunden.
+* **Dedizierte SSIDs:**
+  * **`Family`:** 2.4 / 5 / 6 GHz (Wi-Fi 6E) für alle Familienmitglieder, Workstations und Sonos.
+  * **`IoT_Home`:** 2.4 GHz separates AP-Netzwerk für Smart-Home-Geräte (Roborock Saugroboter, Gardena Mower, Portasplit Klimaanlage).
+* **AP-Isolation (L2-Trennung):** Auf dem AP ist für `IoT_Home` die **AP-Isolation aktiviert**. Das verhindert direkte Kommunikation zwischen IoT-Geräten und unterbindet den Zugriff auf Clients im lokalen Heimnetzwerk.
+
 ---
 
 ## Quickstart
@@ -161,9 +169,9 @@ Setup: `./bin/setup-git.sh`
 * **Pain Point / Trade-Off:** Ein theoretisches Zero-Trust- und DMZ-Design verlangt eine **vollständige physische Trennung**: Ein dedizierter Compute-Knoten in der DMZ und ein separates Speicher-NAS im internen Storage-Netz. Ein solcher Hardware-Umbau ist aktuell **wirtschaftlich nicht sinnvoll** und zu teuer.
 * **Architektur-Urteil:** Das Setup ist **kein Zero Trust – und das ist völlig in Ordnung**. Die pragmatische DMZ-Zonensegmentierung liefert für das aktuelle Risikoprofil 90 % der Schutzwirkung. Sollte die externe Angriffsfläche zukünftig wachsen (weitere öffentliche Dienste), ist Zero Trust über eine **„externe DMZ in der DMZ“** (z. B. vorgelagerter Identity-Aware Proxy / Micro-Enklave) der wirtschaftlich und architektonisch modulare Skalierungspfad.
 * **Aktuelle Schutzmaßnahmen (Mitigations):**
-  * Strikte Dienstebindung in QTS: QTS-Management & SMB sind ausschließlich an Adapter 1 gebunden.
+  * **Dienstebindung in QTS:** QTS-Management (Web-GUI 8080/443), SSH und SMB sollten in QTS (*Systemsteuerung → Netzwerk & virtueller Switch → Dienstebindung*) exklusiv an Adapter 1 (`eth0`) gebunden werden, um den Zugriff aus der DMZ / den Containern abzusichern.
   * Keine Software-Brücke zwischen den Netzwerk-Adaptern im QTS.
-  * Router-Firewall verwirft jeglichen L3-Verkehr aus `SERVER-ZONE` nach `HEIMNETZ` (`action=drop`).
+  * Router-Firewall verwirft jeglichen L3-Verkehr aus `SERVER-ZONE` nach `HEIMNETZ` (`action=drop`, 0 Violations).
 
 ---
 
