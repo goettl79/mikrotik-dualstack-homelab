@@ -14,7 +14,7 @@ Und hören wir auf zu glauben, dass Senior-Expertise billiger werden sollte, nur
 
 Am Wochenende stand das Hardening unserer Edge- und Container-Plattform an: MikroTik RouterOS v7, Dual-Stack FTTH (IPv4 / IPv6-PD) und ein Kubernetes-Cluster auf QNAP-Basis.
 
-Sieben ehrliche Learnings für IT-Entscheider, Architekten und Consultants:
+Acht ehrliche Learnings für IT-Entscheider, Architekten und Consultants:
 
 1. Kein Zero Trust – und das ist völlig in Ordnung
 Echtes Zero Trust verlangt identitätsbasierte Autorisierung pro Request, mTLS zwischen allen Pods und das vollständige Aufheben von Netzwerk-Vertrauenszonen.
@@ -47,6 +47,11 @@ KI ist ein Werkzeug. Ein fantastisches, mächtiges Super-Tool – aber am Ende e
 7. Warum der Preis für Wissen drastisch steigen muss 📈
 Die reine Umsetzungszeit für diese Plattform sank um über 80 %. Aber die Fähigkeiten, das System zu steuern, Fallstricke (K8s-Immutability, TLS-SANs, Routing-Asymmetrien) zu erkennen und die Verantwortung zu tragen, sind unbezahlbar.
 Wenn der Taschenrechner das Rechnen übernimmt, sinkt nicht der Wert des Mathematikers – er steigt. Der wirtschaftliche Preis für fundierte Senior-Expertise, kreative Problemlösung und geteiltes Wissen muss drastisch steigen!
+
+8. Die "Teure Consumer-Hardware"-Falle (Der Click-Ops-Bruch) 🔌
+Teures Prosumer-Equipment (wie der TP-Link Archer AXE75 Wi-Fi 6E) liefert auf dem Papier Spitzen-WLAN-Werte. In der Praxis schlägt die Realität zu: Kein SSH, keine API, keine CLI – nur ein geschlossenes Web-Interface auf Port 80/443.
+In einer automatisierten GitOps-Infrastruktur (MikroTik RouterOS via SOPS + Kubernetes) wird so eine Box zum absoluten Blocker: Keine automatisierte Provisionierung, kein deklaratives Disaster Recovery, reine manuelle "Click-Ops".
+👉 Erkenntnis: "Schnelles WLAN" ist nicht "Enterprise-Ready". Hardware ohne programmierbare Schnittstelle (SSH/API) ist ab Tag 1 technische Schuld – egal wie teuer sie war.
 
 Moderne IT-Sicherheit bedeutet nicht, jedem Hype hinterherzulaufen, sondern Risiken pragmatisch zu beherrschen und den wahren Wert von menschlicher Expertise zu kennen.
 
@@ -100,6 +105,11 @@ AI didn't decide to decouple Kubernetes volumes via DNS, isolate the NAS on Port
 7️⃣ Why Senior Rates Must Drastically Increase 📈
 The execution time for this migration collapsed by 80%. But the skills required to direct, verify, and understand the solution are priceless.
 When the calculator handles the arithmetic, the value of the mathematician doesn't drop — it rises. As AI commoditizes typing syntax, the market price for verified senior knowledge, creative problem-solving, and architectural accountability must increase drastically.
+
+8️⃣ The "Expensive Consumer Hardware" Trap (The Click-Ops Breakdown) 🔌
+High-end prosumer gear (like the TP-Link Archer AXE75 Wi-Fi 6E) boasts great wireless throughput at a premium price. But in production, you hit a wall: no SSH, no CLI, no API — only a closed, proprietary web GUI.
+In a platform where the edge router (MikroTik RouterOS via SOPS) and container clusters (Kubernetes) are 100% automated as code, this device breaks the GitOps chain. Automated provisioning and scripted disaster recovery become impossible, forcing you back into manual "Click-Ops".
+👉 Lesson: "Fast Wi-Fi" does not equal "Enterprise-Ready". Hardware without an API or SSH is instant technical debt, regardless of how expensive it was.
 
 Security leadership isn't about buzzwords — it's about human creativity, intentional risk management, and knowing what to verify.
 
